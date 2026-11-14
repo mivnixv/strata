@@ -18,8 +18,8 @@ opening brace. Validation covers syntax, resource/reference rules, model limits,
 and readability of every referenced icon. `build` additionally checks `--view`.
 Validation is structural; it does not guarantee a crossing-free layout.
 
-Icons default to the repository's `icons/` directory. Use `--icons /path/to/icons`
-to select another root; IDs in the source remain relative to that root.
+Icon paths resolve within the bundled `icons/` directory. Use paths relative to
+that directory, without the `icons/` prefix.
 
 Build outputs one interactive HTML viewer with the source, selected initial view,
 renderer, styles, and referenced icons embedded. It opens directly from disk

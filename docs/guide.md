@@ -24,7 +24,7 @@ node cli/strata.mjs build architecture.strata -o architecture.html
 ```
 
 No prior build is needed. See [CLI options](../cli/README.md) for JSON, stdin,
-initial views, and custom icon directories.
+initial views, and bundled icons.
 
 Run `npm run build`, then open `dist/standalone.html` directly in a modern browser. It includes the complete source editor, language parser, SVG renderer, styles, example model, and help. It needs no server, Node.js, build tools, internet connection, CDN, or adjacent files.
 

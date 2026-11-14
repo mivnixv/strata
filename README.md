@@ -61,15 +61,7 @@ Browse [`brands/`](icons/brands/), [`AWS`](icons/aws19/),
 [`Kubernetes`](icons/kubernetes/), or [`general icons`](icons/svgs/).
 Bundled icons also work through `npx` without downloading them separately.
 
-For custom icons, use lowercase filenames with letters, digits, or underscores
-and an `.svg`, `.png`, `.webp`, `.jpg`, or `.jpeg` extension. Point the CLI at their root:
-
-```sh
-npx --yes github:mivnixv/strata build architecture.strata --icons ./my-icons -o architecture.html
-```
-
-With this option, every icon path resolves inside `my-icons/`. In a local builder
-checkout, add custom files under `icons/` instead. Standalone HTML embeds referenced icons.
+Standalone HTML embeds the referenced bundled icons.
 
 [CLI options](cli/README.md) · [Full guide](docs/guide.md) · [GitHub Pages setup](publishing/README.md)
 

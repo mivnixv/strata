@@ -58,7 +58,8 @@ test('rejects invalid syntax, references, views, and arguments without writing o
     ['service api "API" {',[],/missing/i],
     ['service api "API"\napi -> absent',[],/reference|unknown/i],
     [source,['--view','absent'],/Unknown view/],
-    [source,['--unknown'],/Unknown option/]
+    [source,['--unknown'],/Unknown option/],
+    [source,['--icons','some-directory'],/Unknown option/]
   ]) {
     const result=run(cwd,['build','-','-o','invalid.html',...extra],input);
     assert.equal(result.status,1);
@@ -66,6 +67,9 @@ test('rejects invalid syntax, references, views, and arguments without writing o
     await assert.rejects(readFile(join(cwd,'invalid.html')),{code:'ENOENT'});
   }
   assert.equal(run(cwd,['verify','input.strata','-o','bad.html']).status,1);
+  const removedOption=run(cwd,['verify','input.strata','--icons','some-directory']);
+  assert.equal(removedOption.status,1);
+  assert.match(removedOption.stderr,/Unknown option/);
 });
 
 test('existing output and source files cannot be overwritten',async t=>{
@@ -80,25 +84,25 @@ test('existing output and source files cannot be overwritten',async t=>{
   assert.equal(await readFile(join(cwd,'input.strata'),'utf8'),source);
 });
 
-test('embeds custom icons and builds without a dist directory or prior build',async t=>{
+test('embeds bundled icons and builds without a dist directory or prior build',async t=>{
   const cwd=await workspace(t);
   for (const folder of ['src','standalone','cli']) {
     await cp(new URL(folder+'/',root),join(cwd,folder),{recursive:true});
   }
   await cp(new URL('package.json',root),join(cwd,'package.json'));
-  await mkdir(join(cwd,'custom-icons'));
-  const svg='<svg xmlns="http://www.w3.org/2000/svg"><circle r="5"/></svg>';
-  await writeFile(join(cwd,'custom-icons','custom.svg'),svg);
-  const input='service api "API" {\n icon "custom.svg"\n}';
-  const args=['build','-','--icons','custom-icons','-o','custom.html'];
+  await mkdir(join(cwd,'icons','svgs','solid'),{recursive:true});
+  const svg=await readFile(new URL('icons/svgs/solid/server.svg',root),'utf8');
+  await writeFile(join(cwd,'icons','svgs','solid','server.svg'),svg);
+  const input='service api "API" {\n icon "svgs/solid/server.svg"\n}';
+  const args=['build','-','-o','bundled.html'];
   const result=run(cwd,args,input,join(cwd,'cli','strata.mjs'));
   assert.equal(result.status,0,result.stderr);
-  const saved=bootstrap(await readFile(join(cwd,'custom.html'),'utf8'));
-  assert.equal(saved.icons['custom.svg'],'data:image/svg+xml;base64,'+Buffer.from(svg).toString('base64'));
+  const saved=bootstrap(await readFile(join(cwd,'bundled.html'),'utf8'));
+  assert.equal(saved.icons['svgs/solid/server.svg'],'data:image/svg+xml;base64,'+Buffer.from(svg).toString('base64'));
   for (const command of ['verify','build']) {
-    const missing=run(cwd,[command,'-','--icons','missing-icons'],input);
+    const missing=run(cwd,[command,'-'],'service api "API" {\n icon "missing.svg"\n}');
     assert.equal(missing.status,1);
-    assert.match(missing.stderr,/Cannot read icon: custom.svg/);
+    assert.match(missing.stderr,/Cannot read icon: missing.svg/);
   }
 });
 

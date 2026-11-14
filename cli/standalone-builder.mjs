@@ -4,16 +4,15 @@ import { createOfflineHtml } from '../standalone/offline-export.js';
 
 /** Shared by the CLI and the bundled example build. No generated files needed. */
 export class StandaloneBuilder {
-  constructor({read=readFile,iconsRoot=new URL('../icons/',import.meta.url)}={}) {
+  constructor({read=readFile}={}) {
     this.read=read;
-    this.iconsRoot=iconsRoot;
   }
 
   async collectIcons(model) {
     const icons={};
     for (const id of new Set(model.resources.map(resource=>resource.icon).filter(Boolean))) {
       let bytes;
-      try { bytes=await this.read(new URL(id,this.iconsRoot)); }
+      try { bytes=await this.read(new URL('../icons/'+id,import.meta.url)); }
       catch { throw new Error('Cannot read icon: '+id); }
       const extension=id.split('.').at(-1);
       const mime=extension==='svg' ? 'image/svg+xml' : extension==='jpg' ? 'image/jpeg' : 'image/'+extension;

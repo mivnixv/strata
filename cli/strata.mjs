@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 import { open, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
-import { resolve, parse, sep } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { resolve, parse } from 'node:path';
 import { LIMITS, parseModel } from '../src/framework.js';
 import { parseStrata, formatStrata } from '../src/language.js';
 import { StandaloneBuilder } from './standalone-builder.mjs';
 
 const help=`Usage:
-  strata verify <input.strata|input.json|-> [--icons directory]
-  strata build <input.strata|input.json|-> [-o output.html] [--view id] [--icons directory]
+  strata verify <input.strata|input.json|->
+  strata build <input.strata|input.json|-> [-o output.html] [--view id]
 
 Use - to read stdin. JSON is detected by its opening brace.
 Build defaults to <input-name>.html (diagram.html for stdin).
@@ -53,8 +52,7 @@ async function run() {
   const {values,positionals}=parseArgs({allowPositionals:true,options:{
     help:{type:'boolean',short:'h'},
     output:{type:'string',short:'o'},
-    view:{type:'string'},
-    icons:{type:'string'}
+    view:{type:'string'}
   }});
 
   if (values.help) { process.stdout.write(help); return; }
@@ -71,7 +69,7 @@ async function run() {
 
   if (!model.perspectives.some(perspective=>perspective.id===view)) { throw new Error('Unknown view: '+view); }
 
-  const builder=new StandaloneBuilder(values.icons ? {iconsRoot:pathToFileURL(resolve(values.icons)+sep)} : {});
+  const builder=new StandaloneBuilder();
   const icons=await builder.collectIcons(model);
 
   if (command==='verify') {
