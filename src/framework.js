@@ -222,6 +222,15 @@ export function selectionFocus(layout,selected,resources) {
   if (primary === null) { return {primary,nodes,edges,context}; }
 
   nodes.add(primary);
+  // Keep the selected subtree readable without focusing neighbors' children.
+  for (const node of layout.nodes) {
+    let ancestor = byId.get(node.resource.parent);
+    for (let depth = 0; ancestor && depth <= LIMITS.depth; depth++,ancestor = byId.get(ancestor.parent)) {
+
+      if (ancestor.id === primary) { nodes.add(node.resource.id); break; }
+
+    }
+  }
   for (const edge of layout.edges) {
 
     if (edge.from.resource.id === primary || edge.to.resource.id === primary) {

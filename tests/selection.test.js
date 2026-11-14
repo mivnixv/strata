@@ -22,9 +22,9 @@ test('switching selection changes focus without mutating the cached layout', () 
   assert.ok(!focus.nodes.has('web'));
   assert.equal(JSON.stringify(layout),before);
 });
-test('selecting a group does not highlight its descendants or their connections', () => {
+test('selecting a group keeps its descendants visible without highlighting their connections', () => {
   const focus = selectionFocus(layout,'platform',model.resources);
-  assert.deepEqual(names(focus.nodes),['platform']);
+  assert.deepEqual(names(focus.nodes),['api','db','isolated','platform','worker']);
   assert.deepEqual(labels(focus),[]);
 });
 test('collapsed groups and hidden descendants focus rolled-up connections', () => {
@@ -54,6 +54,9 @@ test('selection uses only edges in the current perspective and does not focus hi
   assert.deepEqual(names(focus.nodes),['api','db']);
   assert.deepEqual(labels(focus),['local SQL']);
   assert.equal(selectionFocus(scoped,'worker',model.resources).primary,null);
+  const parentFocus = selectionFocus(scoped,'platform',model.resources);
+  assert.deepEqual(names(parentFocus.nodes),['api','db','platform']);
+  assert.equal(parentFocus.edges.size,0);
 });
 
 test('group selection highlights only its own incoming and outgoing connections', () => {
@@ -75,11 +78,31 @@ view all "All" {
 }`);
   const scene = new DiagramLayout(connected).create('all');
   const focus = selectionFocus(scene,'parent',connected.resources);
-  assert.deepEqual(names(focus.nodes),['neighbor','outside','parent']);
+  assert.deepEqual(names(focus.nodes),['child','neighbor','nested','outside','parent']);
   assert.deepEqual(labels(focus),['incoming','outgoing']);
   assert.equal(focus.context.size,0);
   const childFocus = selectionFocus(scene,'child',connected.resources);
-  assert.deepEqual(names(childFocus.nodes),['child','other','outside']);
+  assert.deepEqual(names(childFocus.nodes),['child','nested','other','outside']);
   assert.deepEqual(labels(childFocus),['child connection','child to child']);
   assert.deepEqual(names(childFocus.context),['neighbor','parent']);
+  assert.ok(!focus.nodes.has('other'));
+});
+
+test('parent selection preserves collapsed subgroups and does not mutate layout or model', () => {
+  const nested = parseStrata(`service parent "Parent" {
+ service child "Child" {
+  service hidden "Hidden"
+ }
+ service sibling "Sibling"
+}
+service outside "Outside"`);
+  const collapsed = new Set(['child']);
+  const scene = new DiagramLayout(nested).create('all',collapsed);
+  const before = JSON.stringify({scene,model:nested});
+  const focus = selectionFocus(scene,'parent',nested.resources);
+  assert.deepEqual(names(focus.nodes),['child','parent','sibling']);
+  assert.equal(focus.context.size,0);
+  assert.equal(focus.edges.size,0);
+  assert.equal(JSON.stringify({scene,model:nested}),before);
+  assert.deepEqual([...collapsed],['child']);
 });
