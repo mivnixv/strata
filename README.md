@@ -34,6 +34,8 @@ web -> api : "HTTPS"
 api -> db : "SQL"
 ```
 
+See [`examples/`](examples/) for complex subscription, data pipeline, and release workflows.
+
 ## Validate and export
 
 Run directly from GitHub with Node.js 20.11+; no manual clone or npm release needed:
