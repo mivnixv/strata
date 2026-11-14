@@ -74,4 +74,8 @@ npm run check
 npm test
 ```
 
-[MIT License](LICENSE)
+## License
+
+Copyright (c) 2026 mivnixv. Strata's original code is licensed under
+[GNU GPL v3](LICENSE) (GPL-3.0-only). Commercial use and resale are permitted
+under its terms. Third-party assets retain their applicable licenses.
