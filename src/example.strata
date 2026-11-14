@@ -1,0 +1,227 @@
+# Amazon-style physical-product order, using the infrastructure in our existing demo.
+# This is an illustrative business architecture, not Amazon's internal architecture.
+# Scenario: a customer buys one pair of wireless headphones, then optionally returns it.
+# Public journey: https://www.aboutamazon.com/news/operations/how-do-amazon-packages-get-delivered
+diagram "Amazon-style commerce"
+
+app clients "Customer channels" {
+
+  icon "svgs/solid/users.svg"
+  description "Web and mobile channels for shopping, orders, and returns."
+  app web "Storefront & Your Orders" {
+    icon "svgs/solid/store.svg"
+    description "Browse products, check out, and manage orders online."
+  }
+  app mobile "Mobile storefront" {
+    icon "svgs/solid/mobile_alt.svg"
+    description "Shop and track orders from the mobile app."
+  }
+}
+
+service platform "Commerce platform" {
+
+  icon "svgs/solid/sitemap.svg"
+  description "Illustrative Amazon-style commerce built on our existing infrastructure."
+  infrastructure gateway "API gateway" {
+    icon "svgs/solid/network_wired.svg"
+    description "Routes customer requests and forwards checkout idempotency keys."
+  }
+  service services "Order capabilities" {
+    icon "svgs/solid/cubes.svg"
+    description "Logical capabilities covering checkout through delivery and returns."
+    service catalog "Browse products" {
+      icon "svgs/solid/search.svg"
+      description "Shows products, prices, and estimated availability."
+    }
+    service cart "Build cart" {
+      icon "svgs/solid/shopping_cart.svg"
+      description "Stores selected items; checkout revalidates prices and stock."
+    }
+    service orders "Place & confirm order" {
+      icon "svgs/solid/receipt.svg"
+      description "Reserves stock, authorizes payment, and commits the order with an outbox event."
+    }
+    service inventory "Reserve inventory" {
+      icon "svgs/solid/boxes.svg"
+      description "Reserves stock in PostgreSQL and releases cancelled or expired reservations."
+    }
+    service payments "Authorize & settle" {
+      icon "svgs/solid/credit_card.svg"
+      description "Authorizes payment at checkout and captures it at dispatch."
+    }
+    service relay "Publish committed events" {
+      icon "svgs/solid/paper_plane.svg"
+      description "Publishes committed outbox events to the queue; consumers deduplicate retries."
+    }
+    service fulfillment "Pick & pack" {
+      icon "svgs/solid/box_open.svg"
+      description "Turns confirmed orders into deduplicated pick-and-pack tasks."
+    }
+    service shipping "Dispatch shipment" {
+      icon "svgs/solid/truck_loading.svg"
+      description "Captures payment, records tracking, and hands parcels to the carrier."
+    }
+    service tracking "Track delivery" {
+      icon "svgs/solid/map_marker_alt.svg"
+      description "Saves carrier updates and ignores duplicate or stale events."
+    }
+    service notifications "Notify customer" {
+      icon "svgs/solid/bell.svg"
+      description "Sends order, delivery, and refund updates without duplicate messages."
+    }
+    service returns "Approve & inspect return" {
+      icon "svgs/solid/undo.svg"
+      description "Checks return eligibility, coordinates inspection, and approves refunds."
+    }
+    service refunds "Issue refund" {
+      icon "svgs/solid/money_bill_wave.svg"
+      description "Refunds captured payments and records provider confirmation."
+    }
+  }
+  service exceptions "Recovery paths" {
+    icon "svgs/solid/exclamation_triangle.svg"
+    description "Handles cancellations, failures, and reconciliation."
+    service cancellation "Decline or cancel" {
+      icon "svgs/solid/ban.svg"
+      description "Cancels unshipped orders, releases stock, and voids payment authorizations."
+    }
+    service recovery "Retry & reconcile" {
+      icon "svgs/solid/sync_alt.svg"
+      description "Retries failed work and records unresolved exceptions in PostgreSQL."
+    }
+  }
+}
+
+database data "Existing infrastructure" {
+
+  icon "svgs/solid/server.svg"
+  description "Reuses the existing database, cache, and event broker."
+  database postgres "PostgreSQL" {
+    icon "brands/brands_p/postgresql_icon.svg"
+    description "Stores authoritative orders, stock, payments, shipments, and outbox records."
+  }
+  database redis "Redis cache" {
+    icon "brands/brands_r/redis_icon.svg"
+    description "Caches products, temporary carts, and tracking snapshots."
+  }
+  infrastructure queue "Event queue" {
+    icon "svgs/solid/list.svg"
+    description "Delivers order and shipment events; consumers handle redelivery."
+  }
+}
+
+external external "External operations" {
+
+  icon "svgs/solid/globe.svg"
+  description "Payment partners, warehouses, and delivery operations."
+  external provider "Payment provider" {
+    icon "svgs/solid/credit_card.svg"
+    description "Authorizes, captures, voids, and refunds payments."
+  }
+  external warehouse "Fulfillment center" {
+    icon "svgs/solid/warehouse.svg"
+    description "Picks and packs orders; receives and inspects returns."
+  }
+  external carrier "Sort, last mile, deliver" {
+    icon "svgs/solid/truck.svg"
+    description "Transports parcels and reports delivery progress."
+  }
+}
+
+# Discovery and checkout: customer actions enter through the existing gateway.
+web -> gateway : "1. Shop"
+mobile -> gateway : "Same customer APIs"
+gateway -> catalog : "Browse headphones"
+catalog -> cart : "Add one item"
+cart -> redis : "Ephemeral cart"
+catalog -> redis : "Product read cache"
+catalog -> postgres : "Product and price truth"
+gateway -> cart : "Review cart"
+gateway -> orders : "2. Checkout"
+orders -> redis : "Read cart; revalidate price"
+orders -> inventory : "3. Reserve"
+inventory -> postgres : "Atomic stock reservation"
+orders -> payments : "4. Authorize"
+payments -> provider : "Authorize; capture later"
+orders -> postgres : "5. Commit"
+payments -> postgres : "Payment references"
+
+# Committed events connect order acceptance to physical fulfillment.
+postgres -> relay : "Committed outbox only"
+relay -> queue : "6. Publish"
+queue -> fulfillment : "7. Fulfill"
+fulfillment -> warehouse : "8. Pick/pack"
+warehouse -> shipping : "9. Packed"
+shipping -> payments : "10. Capture"
+shipping -> carrier : "11. Dispatch"
+shipping -> postgres : "Shipment and tracking ID"
+carrier -> tracking : "12. Deliver"
+tracking -> postgres : "Durable shipment status"
+tracking -> notifications : "13. Notify"
+notifications -> web : "Your Orders updates"
+
+# After-sales and recovery are shown in their own focused perspectives.
+gateway -> returns : "Request eligible return"
+returns -> warehouse : "Receive and inspect"
+returns -> inventory : "Restock if sellable"
+returns -> refunds : "Approved refund"
+refunds -> provider : "Refund captured payment"
+refunds -> postgres : "Refund state and reference"
+refunds -> notifications : "Refund confirmed"
+orders -> cancellation : "Decline / stock unavailable"
+cancellation -> inventory : "Release reservation"
+cancellation -> payments : "Void authorization"
+cancellation -> postgres : "Cancel before shipment"
+fulfillment -> recovery : "Pick/pack failure"
+shipping -> recovery : "Capture failure; hold parcel"
+carrier -> recovery : "Delay / delivery exception"
+queue -> recovery : "Repeated processing failure"
+recovery -> postgres : "Persist exception / replay ID"
+
+view orders "Order lifecycle" {
+  description "Follow a headphone order from checkout to delivery."
+  include web, gateway, orders, inventory, payments, relay, fulfillment, shipping, tracking, notifications, postgres, redis, queue, provider, warehouse, carrier
+}
+
+view checkout "Browse & checkout" {
+  description "Browse products, build a cart, reserve stock, and authorize payment."
+  include web, gateway, catalog, cart, orders, inventory, payments, postgres, redis, provider
+}
+
+view fulfillment "Fulfillment & delivery" {
+  description "Publish the order, pick and pack, capture payment, and deliver."
+  include postgres, relay, queue, fulfillment, warehouse, shipping, payments, provider, carrier, tracking, notifications
+}
+
+view aftersales "Returns & refunds" {
+  description "Inspect eligible returns, refund payments, and restock sellable goods."
+  include web, gateway, returns, warehouse, inventory, refunds, provider, postgres, notifications
+  warehouse -> returns : "Inspection outcome"
+}
+
+view failures "Failures & recovery" {
+  description "Cancel unshipped orders and recover from processing or delivery failures."
+  # Optional: keep this perspective focused on its own relationships.
+  # Resource membership is inferred from these endpoints and their parent groups.
+  relations only
+  orders -> cancellation : "Declined / unavailable"
+  cancellation -> inventory : "Release reservation"
+  cancellation -> payments : "Void authorization"
+  payments -> provider : "Void request"
+  cancellation -> postgres : "Cancellation record"
+  fulfillment -> recovery : "Pick/pack failure"
+  shipping -> recovery : "Capture failed; hold"
+  carrier -> recovery : "Delivery exception"
+  queue -> recovery : "Processing retries exhausted"
+  recovery -> postgres : "Persist and reconcile"
+}
+
+view data "Data dependencies" {
+  description "See how PostgreSQL, Redis, and the queue support commerce."
+  include catalog, cart, orders, inventory, payments, postgres, redis, relay, queue, fulfillment, shipping, tracking, refunds
+}
+
+view system "System overview" {
+  description "Illustrative retail architecture with reused infrastructure and external partners."
+  include clients, platform, data, external
+}
