@@ -26,7 +26,9 @@ diagram "My system"
 
 app web "Web app"
 service api "API"
-database db "Database"
+database db "Database" {
+  icon "brands/brands_p/postgresql_icon.svg"
+}
 
 web -> api : "HTTPS"
 api -> db : "SQL"
@@ -50,6 +52,24 @@ npm run cli -- build architecture.strata -o architecture.html
 
 Open `architecture.html` in a browser or share it. Referenced icons are embedded;
 no server or internet connection is needed. Existing output files are never overwritten.
+
+## Icons
+
+Add `icon "path/to/icon.svg"` inside a resource block, as shown above.
+Paths are relative to the bundled [`icons/`](icons/) directory; omit the `icons/` prefix.
+Browse [`brands/`](icons/brands/), [`AWS`](icons/aws19/),
+[`Kubernetes`](icons/kubernetes/), or [`general icons`](icons/svgs/).
+Bundled icons also work through `npx` without downloading them separately.
+
+For custom icons, use lowercase filenames with letters, digits, or underscores
+and an `.svg`, `.png`, `.webp`, `.jpg`, or `.jpeg` extension. Point the CLI at their root:
+
+```sh
+npx --yes github:mivnixv/strata build architecture.strata --icons ./my-icons -o architecture.html
+```
+
+With this option, every icon path resolves inside `my-icons/`. In a local builder
+checkout, add custom files under `icons/` instead. Standalone HTML embeds referenced icons.
 
 [CLI options](cli/README.md) · [Full guide](docs/guide.md) · [GitHub Pages setup](publishing/README.md)
 
