@@ -99,7 +99,7 @@ function applySource() {
     if (!renderer.svg) {
       render();
       $('save-status').textContent = 'Saved source is invalid — showing the example preview';
-      notify('Saved source could not be parsed. Edit it or use Load example; your source is preserved.');
+      notify('Saved source could not be parsed. Edit it or use New to start over; your source is preserved.');
     } else {
       $('save-status').textContent = 'Preview shows the last valid model';
     }
@@ -125,7 +125,6 @@ $('new-diagram').onclick = () => {
   download('previous-diagram.strata',$('source').value,'text/plain'); loadSource(starter);
   notify('Starter loaded. Previous source downloaded as a backup.');
 };
-$('load-example').onclick = () => { download('previous-diagram.strata',$('source').value,'text/plain'); loadSource(formatStrata(example)); notify('Example loaded; previous source downloaded.'); };
 $('perspective-select').onchange = e => { perspective = e.target.value; selected = null; detail=null; render(); };
 $('resource-select').onchange = e => { selected = e.target.value || null; popupDismissed=false; render(); };
 $('detail').oninput = e => { detail=Number(e.target.value);render(); };
@@ -134,6 +133,7 @@ $('descriptions').onchange = () => { popupDismissed=false; render(); };
 $('collapse-all').onclick = () => { collapsed = new Set(model.resources.map(r => r.id)); render(); };
 $('expand-all').onclick = () => { collapsed.clear(); detail=1; $('detail').value='1'; render(); };
 const pan=new ViewportPan($('canvas'),$('diagram'));
+$('canvas').addEventListener('click',()=>renderer.clearSelection());
 new WheelZoom($('canvas'),{pan,getZoom:()=>zoom,setZoom:value=>{zoom=value;render();},settle:()=>renderer.finishAnimations()});
 $('zoom-in').onclick = () => { zoom = Math.min(3,zoom+.2); render(); };
 $('zoom-out').onclick = () => { zoom = Math.max(.4,zoom-.2); render(); };
@@ -198,7 +198,7 @@ let resizeFrame;
 new ResizeObserver(() => { cancelAnimationFrame(resizeFrame); resizeFrame=requestAnimationFrame(render); }).observe($('canvas'));
 document.addEventListener('keydown',e => {
 
-  if (e.key === 'Escape') { selected = null; render(); }
+  if (e.key === 'Escape') { renderer.clearSelection(); }
 
 });
 if (bootstrap) {

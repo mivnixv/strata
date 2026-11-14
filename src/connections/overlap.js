@@ -1,3 +1,4 @@
+export const DIMMED_CONNECTION_OPACITY = '0.1';
 /** Find interior crossings or shared segments; touching endpoints are not crossings. */
 export function routesOverlap(first,second) {
   for (let i=1;i<first.length;i++) {
@@ -26,18 +27,7 @@ export function routesOverlap(first,second) {
 export function sharedTrunk(first,second) {
   return (first.from===second.from && first.from.container && first.from.collapsed) || (first.to===second.to && first.to.container && first.to.collapsed);
 }
-export function endpointFade(points,end=false) {
-  const tip=end ? points.at(-1) : points[0],next=end ? points.at(-2) : points[1];
-  const distance=Math.hypot(next.x-tip.x,next.y-tip.y),ratio=distance ? Math.min(1,24/distance) : 0;
-  const inner={x:tip.x+(next.x-tip.x)*ratio,y:tip.y+(next.y-tip.y)*ratio};
-  return {tip,inner};
-}
-export function endpointStroke(points,end=false) {
-  const {tip,inner}=endpointFade(points,end);
-  return end ? `M ${inner.x} ${inner.y} L ${tip.x} ${tip.y}` : `M ${tip.x} ${tip.y} L ${inner.x} ${inner.y}`;
-}
-
-/** Only visible upper routes can obscure lower routes. */
+/** Selected connections remain visible; only visible upper routes obscure others. */
 export function coveredConnections(edges,protectedEdge=()=>false) {
   const visible=[],covered=new Set();
   for (let index=edges.length-1;index>=0;index--) {

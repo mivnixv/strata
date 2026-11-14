@@ -34,6 +34,8 @@ web -> api : "HTTPS"
 api -> db : "SQL"
 ```
 
+Append `dashed` for a dashed connection: `web -> api : "HTTPS" dashed`.
+
 See [`examples/`](examples/) for complex subscription, data pipeline, and release workflows.
 
 ## Validate and export

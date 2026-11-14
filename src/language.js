@@ -104,9 +104,11 @@ export function parseStrata(source) {
     if (t[0] === 'relations' && t[1] === 'only' && t.length === 2 && current?.kind === 'view') {
       current.view.inheritGlobalRelations = false; continue;
     }
-    if ((!current || current.kind === 'view') && t[1] === '->' && (t.length === 3 || (t.length === 5 && t[3] === ':'))) {
+    const dashed=t.at(-1)==='dashed' && (t.length===4 || t.length===6);
+    const relationLength=t.length-(dashed ? 1 : 0);
+    if ((!current || current.kind === 'view') && t[1] === '->' && (relationLength === 3 || (relationLength === 5 && t[3] === ':'))) {
       const target = current ? current.view.relations : model.relations;
-      target.push({from:id(t[0],line),to:id(t[2],line),label:t.length === 5 ? quoted(t[4],line) : ''});
+      target.push({from:id(t[0],line),to:id(t[2],line),label:relationLength === 5 ? quoted(t[4],line) : '',dashed});
       relationCount++;
 
       if (relationCount > LIMITS.relations) { throw new Error(`Line ${line}: maximum ${LIMITS.relations} relationships.`); }
@@ -150,7 +152,7 @@ export function formatStrata(input) {
 
   }
   lines.push('','# Relationships');
-  for (const e of model.relations) { lines.push(`${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}`); }
+  for (const e of model.relations) { lines.push(`${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}${e.dashed ? ' dashed' : ''}`); }
   for (const v of model.perspectives) {
     lines.push('',`view ${v.id} ${JSON.stringify(v.name)} {`);
 
@@ -159,7 +161,7 @@ export function formatStrata(input) {
 
     if (!v.inheritGlobalRelations) { lines.push('  relations only'); }
     if (v.resources !== null) { lines.push(`  include${v.resources.length ? ' ' + v.resources.join(', ') : ''}`); }
-    for (const e of v.relations) { lines.push(`  ${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}`); }
+    for (const e of v.relations) { lines.push(`  ${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}${e.dashed ? ' dashed' : ''}`); }
 
     lines.push('}');
   }

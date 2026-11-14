@@ -7,9 +7,9 @@
   "bin": { "strata": "./cli/strata.mjs" },
   "scripts": {
     "dev": "node standalone/build-offline.mjs && node server.mjs",
-    "test": "node --test tests/*.test.js cli/*.test.mjs",
+    "test": "node --test tests/*.test.js cli/*.test.mjs src/connections/dashed/*.test.js src/connections/endpoints/*.test.js",
     "cli": "node cli/strata.mjs",
-    "check": "node --check cli/strata.mjs && node --check cli/standalone-builder.mjs && node --check src/icons/tint.js && node --check src/icons/library.js && node --check src/icons/tile-icon.js && node --check src/connections/hover.js && node --check src/connections/overlap.js && node --check src/framework.js && node --check src/language.js && node --check src/app.js && node --check server.mjs && node --check standalone/offline-export.js && node --check standalone/build-offline.mjs && node --check src/routing.js && node --check src/motion.js && node --check src/zoom/wheel.js && node --check src/zoom/pan.js && node --check src/tiling/packing.js && node --check src/tiling/allocation.js && node --check src/tiling/engine.js && node --check src/tiling/options.js && node --check src/tiling/semantic.js",
+    "check": "node --check cli/strata.mjs && node --check cli/standalone-builder.mjs && node --check src/icons/tint.js && node --check src/icons/library.js && node --check src/icons/tile-icon.js && node --check src/connections/endpoints/geometry.js && node --check src/connections/dashed/style.js && node --check src/connections/hover.js && node --check src/connections/overlap.js && node --check src/framework.js && node --check src/language.js && node --check src/app.js && node --check server.mjs && node --check standalone/offline-export.js && node --check standalone/build-offline.mjs && node --check src/routing.js && node --check src/motion.js && node --check src/zoom/wheel.js && node --check src/zoom/pan.js && node --check src/tiling/packing.js && node --check src/tiling/allocation.js && node --check src/tiling/engine.js && node --check src/tiling/options.js && node --check src/tiling/semantic.js",
     "build": "node standalone/build-offline.mjs",
     "build:pages": "npm run build && node publishing/build-pages.mjs",
     "pretest": "node standalone/build-offline.mjs"

@@ -3,7 +3,9 @@ import { TextFit } from './typography/fit.js';
 import { IconTint } from './icons/tint.js';
 import { iconId } from './icons/library.js';
 import { ConnectionHover } from './connections/hover.js';
-import { coveredConnections, endpointStroke, endpointFade } from './connections/overlap.js';
+import { coveredConnections, DIMMED_CONNECTION_OPACITY } from './connections/overlap.js';
+import { connectionOptions, connectionStroke } from './connections/dashed/style.js';
+import { connectionEndpoint } from './connections/endpoints/geometry.js';
 import { tileIconPlacement } from './icons/tile-icon.js';
 import { tileOptions, detailValue } from './tiling/options.js';
 import { SemanticDetail } from './tiling/semantic.js';
@@ -79,7 +81,7 @@ export function validateModel(input) {
 
     if (typeof label !== 'string' || label.length > 500) { throw new Error('Relation labels must be strings of at most 500 characters.'); }
 
-    return { from: relation.from, to: relation.to, label };
+    return { from: relation.from, to: relation.to, label, ...connectionOptions(relation) };
   });
 
   const relations = validateRelations(input.relations);
@@ -126,7 +128,7 @@ export function parseModel(source) {
 export function relationsForPerspective(model,view) {
   const unique = new Map();
   for (const edge of [...(view.inheritGlobalRelations ? model.relations : []),...view.relations]) {
-    const key = JSON.stringify([edge.from,edge.to,edge.label]);
+    const key = JSON.stringify([edge.from,edge.to,edge.label,edge.dashed]);
     unique.set(key,edge);
   }
   return [...unique.values()];
@@ -182,7 +184,7 @@ export class DiagramLayout {
       if (!from || !to || from === to) { continue; }
 
       const bundled = (from.container && from.collapsed) || (to.container && to.collapsed);
-      const key = JSON.stringify([from.resource.id,to.resource.id,bundled ? null : relation.label]);
+      const key = JSON.stringify([from.resource.id,to.resource.id,bundled ? null : relation.label,relation.dashed]);
       const existing = edgeGroups.get(key);
 
       if (existing) {
@@ -376,41 +378,44 @@ export class StrataDiagram {
       }
 
       const d = edge.points.map((p,i) => `${i ? 'L' : 'M'} ${p.x} ${p.y}`).join(' ');
-      const edgeGroup = svgElement('g',{'data-from':edge.from.resource.id,'data-to':edge.to.resource.id,'data-edge-key':JSON.stringify([edge.from.resource.id,edge.to.resource.id,edge.label]),'data-focus':!focusing ? 'normal' : connected ? 'connected' : 'dimmed',opacity:!focusing || connected ? 1 : .1});
+      const opacity=!focusing || connected ? '1' : DIMMED_CONNECTION_OPACITY;
+      const bodyOpacity=underneath ? DIMMED_CONNECTION_OPACITY : opacity;
+      const edgeGroup = svgElement('g',{'data-from':edge.from.resource.id,'data-to':edge.to.resource.id,'data-edge-key':JSON.stringify([edge.from.resource.id,edge.to.resource.id,edge.label,edge.dashed]),'data-focus':!focusing ? 'normal' : connected ? 'connected' : 'dimmed','data-covered':String(underneath),opacity:1});
+      const body=svgElement('g',{'data-connection-body':'',opacity:bodyOpacity});
+      const endpoints=svgElement('g',{'data-connection-ends':'',opacity:bodyOpacity==='1' ? '0' : opacity});
       edgeGroup.append(svgElement('title',{},edge.relationships.map(relation => `${relation.from} → ${relation.to}${relation.label ? ' · '+relation.label : ''}`).join('\n')));
       // A canvas-colored underlay separates unavoidable perpendicular crossings.
-      edgeGroup.append(svgElement('path',{d,fill:'none',stroke:colors.canvas,opacity:underneath ? .1 : 1,'stroke-width':6,'stroke-linejoin':'round'}));
-      edgeGroup.append(svgElement('path',{d,fill:'none',stroke:connected ? `url(#${connectionGradientId})` : colors.muted,opacity:underneath ? .1 : 1,'stroke-width':1.5,'stroke-linejoin':'round','marker-end':`url(#${connectionMarkerId})`}));
-      {
-        for (const end of [false,true]) {
-          const {tip,inner}=endpointFade(edge.points,end);
-          const gradientId=`${this.markerId}-fade-${edgeIndex}-${end ? 'end' : 'start'}`;
-          const gradient=svgElement('linearGradient',{id:gradientId,gradientUnits:'userSpaceOnUse',x1:tip.x,y1:tip.y,x2:inner.x,y2:inner.y});
-          const fadeColor=connected ? (end ? targetColor : sourceColor) : colors.muted;
-          gradient.append(svgElement('stop',{offset:'0%','stop-color':fadeColor,'stop-opacity':1}),svgElement('stop',{offset:'100%','stop-color':fadeColor,'stop-opacity':0}));
-          defs.append(gradient);
-          edgeGroup.append(svgElement('path',{'data-endpoint':'',opacity:underneath ? 1 : 0,d:endpointStroke(edge.points,end),fill:'none',stroke:`url(#${gradientId})`,'stroke-width':1.5,...(end ? {'marker-end':`url(#${connectionMarkerId})`} : {})}));
-        }
+      body.append(svgElement('path',{d,fill:'none',stroke:colors.canvas,'stroke-width':6,'stroke-linejoin':'round',...connectionStroke(edge)}));
+      body.append(svgElement('path',{d,fill:'none',stroke:connected ? `url(#${connectionGradientId})` : colors.muted,'stroke-width':1.5,'stroke-linejoin':'round','marker-end':`url(#${connectionMarkerId})`,...connectionStroke(edge)}));
+      for (const end of [false,true]) {
+        const segment=connectionEndpoint(edge.points,end);
+        const fadeId=`${connectionGradientId}-endpoint-${end ? 'end' : 'start'}`;
+        const gradient=svgElement('linearGradient',{id:fadeId,gradientUnits:'userSpaceOnUse',x1:segment.tip.x,y1:segment.tip.y,x2:segment.inner.x,y2:segment.inner.y});
+        gradient.append(svgElement('stop',{offset:'0%','stop-color':colors.muted,'stop-opacity':1}),svgElement('stop',{offset:'100%','stop-color':colors.muted,'stop-opacity':0}));
+        defs.append(gradient);
+        endpoints.append(svgElement('path',{'data-endpoint':end ? 'end' : 'start',d:segment.d,fill:'none',stroke:`url(#${fadeId})`,'stroke-width':1.5,'stroke-linejoin':'round',...connectionStroke(edge),...(edge.dashed ? {'stroke-dashoffset':-segment.offset} : {}),...(end ? {'marker-end':`url(#${this.markerId})`} : {})}));
       }
+      edgeGroup.append(body,endpoints);
       arrows.append(edgeGroup);
-      hoverEntries.push({edge,selected:connected,group:edgeGroup,opacity:edgeGroup.getAttribute('opacity')});
+      hoverEntries.push({edge,selected:connected,group:edgeGroup,body,endpoints,opacity});
 
       if (showLabels && edge.label && edge.labelPosition) {
         const labelFit=this.textFit.fit(edge.label,edge.labelPosition.width,{max:20});
         const label=labelFit.text;
         const {x,y} = edge.labelPosition;
-        edgeGroup.append(svgElement('text',{x,y,'text-anchor':'middle',fill:connected ? colors.text : colors.muted,'font-size':labelFit.size,'font-family':'Arial,sans-serif',stroke:colors.canvas,'stroke-width':5,'stroke-linejoin':'round','paint-order':'stroke'},label));
+        body.append(svgElement('text',{x,y,'text-anchor':'middle',fill:connected ? colors.text : colors.muted,'font-size':labelFit.size,'font-family':'Arial,sans-serif',stroke:colors.canvas,'stroke-width':5,'stroke-linejoin':'round','paint-order':'stroke'},label));
       }
 
     }
-    hoverConnections=new ConnectionHover(arrows,hoverEntries);
+    hoverConnections=new ConnectionHover(arrows,hoverEntries,{selectionActive:focusing});
     svg.append(backgrounds, arrows, foreground);
-    svg.addEventListener('click', () => { clearTimeout(this.clickTimer); this.onSelect(null); });
+    svg.addEventListener('click', event => { event.stopPropagation(); this.clearSelection(); });
     this.motion.transition(this.svg,svg,{enabled:this.animate,duration:this.previousLayout === layout ? 180 : 420});
     this.element.replaceChildren(svg);
     this.svg = svg; this.previousLayout = layout;
     return layout;
   }
+  clearSelection() { clearTimeout(this.clickTimer); this.onSelect(null); }
   finishAnimations() { this.motion.finish(); }
   exportSvg() { this.finishAnimations(); return new XMLSerializer().serializeToString(this.svg); }
 }

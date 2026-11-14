@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DiagramLayout, selectionFocus } from '../src/framework.js';
+import { DiagramLayout, selectionFocus, StrataDiagram } from '../src/framework.js';
+import { setTimeout as delay } from 'node:timers/promises';
 import { parseStrata } from '../src/language.js';
 const model = parseStrata('app web "Web"\nservice platform "Platform" {\n service api "API"\n database db "Database"\n service worker "Worker"\n service isolated "Isolated"\n}\nweb -> api : "request"\napi -> db : "SQL"\nworker -> db : "maintenance"\nview all "All" {\n include web, platform\n}\nview scoped "Scoped" {\n relations only\n api -> db : "local SQL"\n}');
 const layout = new DiagramLayout(model).create('all');
@@ -47,6 +48,14 @@ test('clearing selection or selecting an unknown item restores the normal view',
     assert.equal(focus.edges.size,0);
     assert.equal(focus.nodes.size,0);
   }
+});
+test('clearing selection cancels a pending resource click so it cannot select afterward', async () => {
+  const changes=[];
+  const target={onSelect:id=>changes.push(id),clickTimer:setTimeout(()=>changes.push('api'),0)};
+  StrataDiagram.prototype.clearSelection.call(target);
+  assert.deepEqual(changes,[null]);
+  await delay(20);
+  assert.deepEqual(changes,[null]);
 });
 test('selection uses only edges in the current perspective and does not focus hidden siblings', () => {
   const scoped = new DiagramLayout(model).create('scoped');
