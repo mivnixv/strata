@@ -34,7 +34,14 @@ api -> db : "SQL"
 
 ## Validate and export
 
-From the repository root:
+Run directly from GitHub with Node.js 20.11+; no manual clone or npm release needed:
+
+```sh
+npx --yes github:mivnixv/strata verify architecture.strata
+npx --yes github:mivnixv/strata build architecture.strata -o architecture.html
+```
+
+`npx` downloads the package into its cache. From an existing checkout, use:
 
 ```sh
 npm run cli -- verify architecture.strata
