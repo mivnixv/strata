@@ -106,6 +106,7 @@ service platform "Commerce platform" {
 }
 
 database data "Existing infrastructure" {
+  dashed
 
   icon "svgs/solid/server.svg"
   description "Reuses the existing database, cache, and event broker."
