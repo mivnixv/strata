@@ -17,8 +17,9 @@ file that works offline. No runtime dependencies.
 - **Connection and border styles:** solid or dashed connections, plus dashed
   container and item borders.
 - **Numbered notes:** attach notes to items, containers, or connections; add
-  standalone or view-specific notes. Item marks use dashed circles and default
-  to top-left.
+  standalone or view-specific notes. Use `note 1 "Text" on api` inside a view
+  for view-only item detail alongside global notes. Item marks use dashed circles
+  and default to top-left.
 - **Mark positioning:** place item marks at any corner or side with `position`.
   Multiple marks stack along the chosen edge; connectors follow their marks,
   including when their item is collapsed.
@@ -40,7 +41,7 @@ file that works offline. No runtime dependencies.
 - **Portable exports:** export SVG or self-contained offline HTML with embedded
   icons. Validate and build diagrams from the CLI without runtime dependencies.
 - **Built-in example:** explore an [order lifecycle](src/example.strata) with
-  12 notes demonstrating attachments, mark positions, connector styles, font sizes,
+  14 notes demonstrating attachments, mark positions, connector styles, font sizes,
   and view scope.
 
 ## Quick start
@@ -98,6 +99,36 @@ Supported positions: `top-left` (default), `top`, `top-right`, `right`,
 `bottom-right`, `bottom`, `bottom-left`, and `left`. The option positions the mark;
 the notebook block stays in the notes grid. General and connection notes do not
 accept item mark positions. See [note options](src/notes/README.md).
+
+## Global and view-specific notes
+
+Keep general notes at the top level and shared item notes inside the item.
+Declare additional notes inside a view; `on api` attaches a view-only note to
+an existing item:
+
+```text
+note 1 "Global context"
+service api "API" {
+  note 2 "Shared API explanation"
+}
+
+view checkout "Checkout" {
+  note 3 "Checkout-only detail" on api position right connect dashed
+}
+view operations "Operations" {
+  include api
+}
+```
+
+Checkout shows notes 1–3; Operations shows global notes 1–2. View notes add detail
+without replacing global notes. Their item targets and ancestor containers are
+included automatically. To add a view-only connection note, declare the same
+connection inside the view with its note; matching global and local connections
+merge and retain both sets of notes. Note numbers remain unique across views.
+
+The [built-in example](src/example.strata) demonstrates this on the order item
+and payment authorization connection. See [note scoping](src/notes/README.md#view-specific-notes-alongside-global-notes)
+or the [guide](docs/guide.md#keep-global-notes-and-add-view-only-detail).
 
 ## Validate and export
 

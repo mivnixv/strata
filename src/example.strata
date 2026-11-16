@@ -197,13 +197,17 @@ queue -> recovery : "Repeated processing failure"
 recovery -> postgres : "Persist exception / replay ID"
 
 view orders "Order lifecycle" {
-  # View-local standalone note; this ninth visible note starts the next notebook row.
-  note 9 "Follow steps 1–13 from checkout to delivery. This explanation appears only in Order lifecycle." fontSize 16
+  # View-only item note: global order notes remain; this ninth note starts a new row.
+  note 9 "Follow steps 1–13 from checkout to delivery. This explanation appears only in Order lifecycle." on orders position bottom-right fontSize 16
   description "Follow a headphone order from checkout to delivery."
   include web, gateway, orders, inventory, payments, relay, fulfillment, shipping, tracking, notifications, postgres, redis, queue, provider, warehouse, carrier
 }
 
 view checkout "Browse & checkout" {
+  # View-only detail on an existing item; its global notes 3 and 4 remain visible.
+  note 13 "Checkout view: validate cart totals before accepting the order." on orders position right connect : "Checkout gate" solid
+  # Same endpoints/label as the global edge: one connection keeps global note 7 and local note 14.
+  payments -> provider : "Authorize; capture later" note 14 "Retry authorization with the same payment request ID." connect dashed
   description "Browse products, build a cart, reserve stock, and authorize payment."
   include web, gateway, catalog, cart, orders, inventory, payments, postgres, redis, provider
 }

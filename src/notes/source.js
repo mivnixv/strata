@@ -9,12 +9,19 @@ export function parseNoteDeclarations(tokens,line,readString) {
     index+=3;
 
     const options=new Set();
-    while (tokens[index]==='connect' || tokens[index]==='fontSize' || tokens[index]==='position') {
+    while (tokens[index]==='connect' || tokens[index]==='fontSize' || tokens[index]==='position' || tokens[index]==='on') {
       const option=tokens[index];
 
       if (options.has(option)) { throw new Error(`Line ${line}: duplicate note ${option} option.`); }
 
       options.add(option);
+
+      if (option==='on') {
+
+        if (tokens[index+1]===undefined) { throw new Error(`Line ${line}: expected an item ID after on.`); }
+
+        note.resource=tokens[index+1]; index+=2; continue;
+      }
 
       if (option==='position') {
 
@@ -43,5 +50,5 @@ export function parseNoteDeclarations(tokens,line,readString) {
 
 export function formatNoteDeclaration(note) {
   const connector=note.connector;
-  return `note ${note.number} ${JSON.stringify(note.text)}${note.position && note.position!=='top-left' ? ` position ${note.position}` : ''}${note.fontSize!==14 ? ` fontSize ${note.fontSize}` : ''}${connector ? ` connect${connector.label ? ' : '+JSON.stringify(connector.label) : ''} ${connector.dashed ? 'dashed' : 'solid'}` : ''}`;
+  return `note ${note.number} ${JSON.stringify(note.text)}${note.resource ? ' on '+note.resource : ''}${note.position && note.position!=='top-left' ? ` position ${note.position}` : ''}${note.fontSize!==14 ? ` fontSize ${note.fontSize}` : ''}${connector ? ` connect${connector.label ? ' : '+JSON.stringify(connector.label) : ''} ${connector.dashed ? 'dashed' : 'solid'}` : ''}`;
 }

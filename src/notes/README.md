@@ -134,3 +134,51 @@ position stack along that edge, then outward. Collapsed descendant marks use
 their chosen position on the visible collapsed item. Note connectors follow the
 actual mark position. SVG bounds include outer marks, and exports preserve the
 setting. General and connection notes do not accept item mark positions.
+
+
+## View-specific notes alongside global notes
+
+Keep notes in item blocks or at the top level for global explanations. Add a
+note inside a view to scope it to that view. Use `on ITEM_ID` to attach it to an
+existing item without moving or replacing that item's global notes:
+
+```text
+note 1 "Global context"
+service api "API" {
+  note 2 "Global API explanation"
+}
+view checkout "Checkout" {
+  note 3 "Checkout-only API detail" on api position right connect dashed
+  note 4 "Checkout-only standalone context"
+}
+view operations "Operations" {
+  include api
+}
+```
+
+Checkout shows notes 1–4; Operations shows notes 1–2. Item-targeted view notes
+include their target and ancestor context automatically. If a view has no
+explicit `include`, local connection endpoints and note targets determine its
+membership; views with neither still infer membership from globals. Global
+item/connection notes remain visible whenever their attachment participates.
+
+To annotate a connection only in one view, declare that connection inside the
+view with its note. An identical inherited/global connection merges with it,
+retaining both global and local notes.
+
+`on` may be combined with the other note options in any order. It is valid on
+model/view-level notes; notes already inside an item or attached to an arrow
+cannot specify another attachment. JSON uses `"resource": "api"` on a model- or
+view-level note. References must resolve to existing resource IDs. Note numbers
+remain unique across the entire diagram, including across views. Formatting,
+SVG, and offline HTML retain scope, attachment, and global notes.
+
+
+### Try the bundled example
+
+In [`src/example.strata`](../example.strata), compare **Order lifecycle** and
+**Browse & checkout**. Global order notes 3–4 remain in both. Note 9 attaches to
+the order item only in Order lifecycle; note 13 attaches to that same item only
+in Browse & checkout. The checkout payment connection displays global note 7
+and local note 14 together, on one merged connection. Enable **Show notes** and
+select the item or individual note to inspect the differences.

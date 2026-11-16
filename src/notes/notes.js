@@ -6,7 +6,7 @@ export const NOTE_COLUMNS = 8;
 export class NoteValidator {
   constructor() { this.numbers=new Set(); }
 
-  parse(values=[],attachment='general') {
+  parse(values=[],attachment='general',resourceIds=new Set()) {
 
     if (!Array.isArray(values)) { throw new Error('Notes must be an array.'); }
 
@@ -21,8 +21,13 @@ export class NoteValidator {
 
       if (typeof fontSize!=='number' || !Number.isFinite(fontSize) || fontSize<=0) { throw new Error('Note fontSize must be a positive finite number.'); }
 
+      const resource=note.resource ?? null;
+
+      if (resource!==null && (attachment!=='general' || !resourceIds.has(resource))) { throw new Error('A note on an item must be declared at model/view level and reference an existing resource ID.'); }
+
+      const target=resource===null ? attachment : 'item';
       this.numbers.add(note.number);
-      return {number:note.number,text:note.text,fontSize,position:noteMarkPosition(note.position,attachment),connector:this.connector(note.connector,attachment!=='general')};
+      return {number:note.number,text:note.text,fontSize,resource,position:noteMarkPosition(note.position,target),connector:this.connector(note.connector,target!=='general')};
     });
   }
 
@@ -46,7 +51,14 @@ export class NoteValidator {
 export function notesForLayout(model,view,nodes,edges,maxDepth,membership) {
   const entries=[], byId=new Map(model.resources.map(resource=>[resource.id,resource]));
   const visible=new Map(nodes.map(node=>[node.resource.id,node]));
-  for (const note of [...model.notes,...view.notes]) { entries.push({note,anchor:null,target:{kind:'general'}}); }
+  const attachments=new Map();
+  for (const note of [...model.notes,...view.notes]) {
+
+    if (note.resource===null) { entries.push({note,anchor:null,target:{kind:'general'}}); continue; }
+
+    const list=attachments.get(note.resource) ?? [];
+    list.push(note); attachments.set(note.resource,list);
+  }
   for (const resource of model.resources) {
 
     if (!membership.has(resource.id)) { continue; }
@@ -61,7 +73,7 @@ export function notesForLayout(model,view,nodes,edges,maxDepth,membership) {
 
     if (!node) { continue; }
 
-    for (const note of resource.notes) { entries.push({note,anchor:itemNoteAnchor(node,note.position),target:{kind:'item',resourceId:resource.id,nodeId:node.resource.id}}); }
+    for (const note of [...resource.notes,...(attachments.get(resource.id) ?? [])]) { entries.push({note,anchor:itemNoteAnchor(node,note.position),target:{kind:'item',resourceId:resource.id,nodeId:node.resource.id}}); }
   }
   for (const edge of edges) {
     const point=noteConnectionAnchor(edge.points);

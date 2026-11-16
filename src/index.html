@@ -85,7 +85,7 @@ view recovery "Recovery only" {
         <li>Connections outside views are global. Views inherit applicable globals and may add local connections.</li>
         <li><code>relations only</code> disables inherited global connections in that view.</li>
         <li><code>include api, queue</code> selects items. Including a container includes its descendants.</li>
-        <li>Without <code>include</code>, local endpoints determine membership; views without local connections infer it from inherited globals.</li>
+        <li>Without <code>include</code>, local connection endpoints and item note targets determine membership; views with neither infer it from inherited globals.</li>
         <li>Local endpoints include their ancestor context without unrelated siblings. Without any views, an overview is generated.</li>
       </ul>
     </section>
@@ -104,12 +104,26 @@ api -> db note 4 "Connection note" connect solid
 view data "Data" {
   include api, db
   note 5 "Standalone note for this view"
+  note 6 "View-only API detail" on api position right
 }</pre>
-      <p>Top-level notes have no mark and appear across views. Notes inside items attach to those items; notes after an arrow attach to that connection. Standalone notes inside views appear only in that view. Numbers must be positive integers unique across the diagram.</p>
+      <p>Top-level notes have no mark and appear across views. Notes inside items attach to those items; notes after an arrow attach to that connection. Notes inside views appear only in that view. Append <code>on api</code> to attach a view note to an existing item; its global notes remain intact. The target item and ancestor context are included automatically. Numbers must be positive integers unique across the diagram.</p>
+      <h4>Preserve global notes and add view-only detail</h4>
+      <pre>service api "API" {
+  note 1 "Global API explanation"
+}
+view checkout "Checkout" {
+  note 2 "Checkout-only detail" on api connect dashed
+}
+view operations "Operations" {
+  include api
+}</pre>
+      <p>Checkout shows notes 1 and 2; Operations keeps global note 1. A local note adds to the global explanations instead of replacing them. To add a view-only connection note, repeat the matching global connection inside the view with its note; both sets of notes share one connection.</p>
+      <p>In the bundled example, compare <b>Order lifecycle</b> with <b>Browse &amp; checkout</b>: order notes 3–4 stay global, note 9 belongs only to Order lifecycle, and note 13 belongs only to Browse &amp; checkout. The checkout payment connection keeps global note 7 alongside local note 14.</p>
       <h4>Customize the note</h4>
       <table>
         <thead><tr><th>Option</th><th>Default and scope</th></tr></thead>
         <tbody>
+          <tr><td><code>on api</code></td><td>Attach a model/view-level note to an existing item. Global notes remain visible where applicable.</td></tr>
           <tr><td><code>fontSize 18.5</code></td><td>Note body text defaults to 14. Any positive finite size, including decimals.</td></tr>
           <tr><td><code>position top-right</code></td><td>Item marks default to top-left. Does not move the notebook block.</td></tr>
           <tr><td><code>connect</code></td><td>Optional solid line from a notebook block to its mark.</td></tr>
@@ -165,7 +179,7 @@ view data "Data" {
       <h3>7. Save, import, and export</h3>
       <ul>
         <li><b>Source:</b> saves the last valid server-mode source in this browser. Export <code>.strata</code> for a portable backup or Git.</li>
-        <li><b>Import:</b> accepts Strata text or compatible JSON. Import the bundled <code>src/example.strata</code> to explore 12 notes and their attachment options.</li>
+        <li><b>Import:</b> accepts Strata text or compatible JSON. Import the bundled <code>src/example.strata</code> to explore 14 notes and their attachment options.</li>
         <li><b>SVG:</b> exports the current view and note visibility after settling animations.</li>
         <li><b>Offline HTML:</b> embeds source, all model resources/views, icons, styles, and renderer. Opens directly from disk without a server or internet.</li>
         <li>Offline HTML starts as a full-window viewer without the source sidebar. Re-export to preserve in-memory changes; it cannot overwrite the original file automatically.</li>

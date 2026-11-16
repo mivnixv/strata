@@ -40,7 +40,6 @@ export function validateModel(input) {
   }
 
   const noteValidator=new NoteValidator();
-  const notes=noteValidator.parse(input.notes);
   const ids = new Set();
   const resources = input.resources.map(resource => {
 
@@ -63,6 +62,7 @@ export function validateModel(input) {
     tileOptions(resource);
     return { ...containerOptions(resource), notes:noteValidator.parse(resource.notes,'item'), id, noLargeIcon:parseNoLargeIcon(resource.noLargeIcon), icon:iconId(resource.icon), name: string(resource.name, 'Resource name'), type, parent, description, subheader:parseSubheader(resource.subheader), sizes:resource.sizes ?? null, compactness:resource.compactness ?? null };
   });
+  const notes=noteValidator.parse(input.notes,'general',ids);
   const byId = new Map(resources.map(r => [r.id, r]));
   for (const resource of resources) {
     let current = resource;
@@ -121,7 +121,7 @@ export function validateModel(input) {
     if (typeof description !== 'string' || description.length > 5000) { throw new Error('Perspective descriptions must be strings of at most 5000 characters.'); }
 
     viewIds.add(id);
-    return { notes:noteValidator.parse(view.notes), ...tileOptions(view), detail:detailValue(view.detail ?? 1), id, name: string(view.name, 'Perspective name'), description, resources: view.resources == null ? null : [...new Set(view.resources)], relations: validateRelations(localRelations), inheritGlobalRelations };
+    return { notes:noteValidator.parse(view.notes,'general',ids), ...tileOptions(view), detail:detailValue(view.detail ?? 1), id, name: string(view.name, 'Perspective name'), description, resources: view.resources == null ? null : [...new Set(view.resources)], relations: validateRelations(localRelations), inheritGlobalRelations };
   });
   return { title, notes, resources, relations, perspectives };
 }
@@ -149,9 +149,14 @@ export class DiagramLayout {
     const resources = new Map(model.resources.map(r => [r.id, r]));
     const relations = relationsForPerspective(model,view);
     const contextResources = view.resources ?? [];
-    const inferred = view.relations.length ? view.relations : relations;
+    const inferred = view.relations.length || view.notes.some(note=>note.resource!==null) ? view.relations : relations;
     const visible = new Set(view.resources ?? inferred.flatMap(e => [e.from,e.to]));
     for (const edge of view.relations) { visible.add(edge.from); visible.add(edge.to); }
+    for (const note of view.notes) {
+
+      if (note.resource!==null) { visible.add(note.resource); }
+
+    }
     // Include context ancestors; listing a container includes its complete subtree.
     for (const resource of model.resources) {
       let current = resource;

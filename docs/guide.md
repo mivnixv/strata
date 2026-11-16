@@ -169,7 +169,7 @@ view audit "Audit only" {
 | View directive | Behavior |
 | --- | --- |
 | `include api, db` | Selects items explicitly; including a container includes its descendants. |
-| Omitted `include` | Local connection endpoints determine membership; if there are no local connections, inherited globals determine it. |
+| Omitted `include` | Local connection endpoints and item note targets determine membership; if neither exists, inherited globals determine it. |
 | Empty `include` | Adds no explicit items; local endpoints still participate. |
 | `relations only` | Disables inherited global connections for this view. |
 | `description "Text"` | Stores a view explanation in the model. |
@@ -202,22 +202,45 @@ view operations "Operations" {
 | Top level | Standalone note, visible across views; no mark. |
 | Inside an item/container block | Item note with a numbered mark. |
 | After a connection | Connection note with a mark near the route. |
-| Inside a view | Standalone note scoped to that view. |
+| Inside a view | Note scoped to that view; append `on api` to attach it to an existing item. |
 
 Numbers must be positive safe integers, unique across the entire diagram.
 Multiple notes may follow a connection. Text must be nonempty, at most 5,000
 characters; `\n` inserts a line break.
 
+### Keep global notes and add view-only detail
+
+```text
+note 1 "Global context"
+service api "API" {
+  note 2 "Global item explanation"
+}
+view checkout "Checkout" {
+  note 3 "Checkout-only detail" on api position right connect dashed
+  note 4 "Checkout-only context"
+}
+view operations "Operations" {
+  include api
+}
+```
+
+Checkout shows notes 1–4. Operations keeps global notes 1–2. A view note with
+`on api` includes API and its ancestor context automatically. When `include` is
+omitted, local connection endpoints and note targets determine membership;
+views with neither infer it from globals. An identical global connection can be
+redeclared inside a view with additional notes; both sets of notes are retained.
+
 ### Note options
 
 | Option | Default | Applies to |
 | --- | --- | --- |
+| `on api` | No item target | Model/view-level notes; view targets are included automatically. |
 | `fontSize 18.5` | `14` SVG pixels | All note bodies; any positive finite number. |
 | `position top-right` | `top-left` | Item/container marks only. |
 | `connect` | No connector | Item and connection notes with a mark. |
 | `connect : "Label" dashed` | Solid line, empty label when omitted | Optional block-to-mark connector. |
 
-`fontSize`, `position`, and `connect` may appear in any order. Append `solid` or
+`on`, `fontSize`, `position`, and `connect` may appear in any order. Append `solid` or
 `dashed` immediately after the optional connector label. Omitting `connect`
 shows just the note and its mark. Standalone notes cannot have connectors or
 item mark positions.
@@ -382,7 +405,7 @@ JSON imports use `resources`, `relations`, and `perspectives` arrays, plus a
 | Relation | `from`, `to`, `label`, `dashed`, `notes`. |
 | Perspective | `resources`, `relations`, `inheritGlobalRelations`, `description`, `sizes`, `compactness`, `detail`, `notes`. |
 | Model | `notes` for global standalone notes. |
-| Note | `number`, `text`, `fontSize`, `position` (item notes), `connector`. |
+| Note | `number`, `text`, `resource` (model/view-level item attachment), `fontSize`, `position` (item notes), `connector`. |
 
 A note connector is `{"label": "Details", "dashed": true}`; omission or `null`
 disables it. Boolean style options accept `true` or `false`. A perspective can
@@ -393,7 +416,7 @@ omit `resources` or use `null` to infer membership; setting
 
 [`src/example.strata`](../src/example.strata) is the authoritative source for the
 illustrative retail order journey. It includes checkout, fulfillment/delivery,
-returns/refunds, recovery, infrastructure, and overview perspectives, plus 12
+returns/refunds, recovery, infrastructure, and overview perspectives, plus 14
 notes demonstrating attachment types, view scope, mark positions, font sizes,
 and optional annotation connectors.
 
@@ -403,6 +426,21 @@ design, not a reconstruction of Amazon's internal architecture. Physical
 operations draw on Amazon's public [package journey](https://www.aboutamazon.com/news/operations/how-do-amazon-packages-get-delivered)
 and [fulfillment overview](https://sell.amazon.com/fulfillment-by-amazon).
 Payment capture at dispatch is a scenario assumption.
+
+### Compare note scope in the example
+
+| Notes | Scope | Where to compare |
+| --- | --- | --- |
+| 1 | Global standalone context | Every view. |
+| 3–4 | Global notes attached to Place & confirm order | Order lifecycle and Browse & checkout both retain them. |
+| 7 | Global payment authorization connection note | Both views retain it on the payment-provider connection. |
+| 9 | Item note declared inside Order lifecycle | Only Order lifecycle; attaches to the order item with `on orders`. |
+| 13 | Item note declared inside Browse & checkout | Only Browse & checkout; adds detail alongside global notes 3–4. |
+| 14 | Local note on the matching global payment connection | Only Browse & checkout; the single connection keeps notes 7 and 14. |
+
+Switch between **Order lifecycle** and **Browse & checkout** with **Show notes**
+enabled. Select the order item to reveal its applicable notes, or click an
+individual mark to focus that specific explanation.
 
 `npm run build` validates the source and generates `dist/example.js` and
 `dist/standalone.html`. Existing browser-saved source remains intact; import the
