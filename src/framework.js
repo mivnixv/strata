@@ -1,3 +1,8 @@
+import { parseNoLargeIcon } from './items/no-large-icon/no-large-icon.js';
+import { parseSubheader, ItemSubheader } from './items/subheader/subheader.js';
+import { noteSelectionFocus, NoteInteraction } from './notes/selection.js';
+import { containerOptions, containerStroke } from './containers/dashed/style.js';
+import { NoteValidator, notesForLayout, NoteRenderer } from './notes/notes.js';
 import { resolveTheme } from './themes/themes.js';
 import { TextFit } from './typography/fit.js';
 import { IconTint } from './icons/tint.js';
@@ -34,6 +39,8 @@ export function validateModel(input) {
     throw new Error(`Resources must be an array of at most ${LIMITS.resources} items.`);
   }
 
+  const noteValidator=new NoteValidator();
+  const notes=noteValidator.parse(input.notes);
   const ids = new Set();
   const resources = input.resources.map(resource => {
 
@@ -54,7 +61,7 @@ export function validateModel(input) {
     if (typeof description !== 'string' || description.length > 5000) { throw new Error('Descriptions must be strings of at most 5000 characters.'); }
 
     tileOptions(resource);
-    return { id, icon:iconId(resource.icon), name: string(resource.name, 'Resource name'), type, parent, description, sizes:resource.sizes ?? null, compactness:resource.compactness ?? null };
+    return { ...containerOptions(resource), notes:noteValidator.parse(resource.notes,'item'), id, noLargeIcon:parseNoLargeIcon(resource.noLargeIcon), icon:iconId(resource.icon), name: string(resource.name, 'Resource name'), type, parent, description, subheader:parseSubheader(resource.subheader), sizes:resource.sizes ?? null, compactness:resource.compactness ?? null };
   });
   const byId = new Map(resources.map(r => [r.id, r]));
   for (const resource of resources) {
@@ -81,7 +88,7 @@ export function validateModel(input) {
 
     if (typeof label !== 'string' || label.length > 500) { throw new Error('Relation labels must be strings of at most 500 characters.'); }
 
-    return { from: relation.from, to: relation.to, label, ...connectionOptions(relation) };
+    return { from: relation.from, to: relation.to, label, notes:noteValidator.parse(relation.notes,'connection'), ...connectionOptions(relation) };
   });
 
   const relations = validateRelations(input.relations);
@@ -114,9 +121,9 @@ export function validateModel(input) {
     if (typeof description !== 'string' || description.length > 5000) { throw new Error('Perspective descriptions must be strings of at most 5000 characters.'); }
 
     viewIds.add(id);
-    return { ...tileOptions(view), detail:detailValue(view.detail ?? 1), id, name: string(view.name, 'Perspective name'), description, resources: view.resources == null ? null : [...new Set(view.resources)], relations: validateRelations(localRelations), inheritGlobalRelations };
+    return { notes:noteValidator.parse(view.notes), ...tileOptions(view), detail:detailValue(view.detail ?? 1), id, name: string(view.name, 'Perspective name'), description, resources: view.resources == null ? null : [...new Set(view.resources)], relations: validateRelations(localRelations), inheritGlobalRelations };
   });
-  return { title, resources, relations, perspectives };
+  return { title, notes, resources, relations, perspectives };
 }
 export function parseModel(source) {
 
@@ -129,7 +136,8 @@ export function relationsForPerspective(model,view) {
   const unique = new Map();
   for (const edge of [...(view.inheritGlobalRelations ? model.relations : []),...view.relations]) {
     const key = JSON.stringify([edge.from,edge.to,edge.label,edge.dashed]);
-    unique.set(key,edge);
+    const previous=unique.get(key);
+    unique.set(key,previous ? {...edge,notes:[...previous.notes,...edge.notes]} : edge);
   }
   return [...unique.values()];
 }
@@ -206,7 +214,7 @@ export class DiagramLayout {
       for (const point of edge.points) { point.x -= minX; point.y -= minY; }
       if (edge.labelPosition) { edge.labelPosition.x -= minX; edge.labelPosition.y -= minY; }
     }
-    return {nodes,edges:routed,width:points.reduce((max,p) => Math.max(max,p.x+40),Math.max(700,rootGrid.w+144-minX)),height:points.reduce((max,p) => Math.max(max,p.y+40),Math.max(420,rootGrid.h+144-minY))};
+    return {notes:notesForLayout(model,view,nodes,routed,LIMITS.depth,visible),nodes,edges:routed,width:points.reduce((max,p) => Math.max(max,p.x+40),Math.max(700,rootGrid.w+144-minX)),height:points.reduce((max,p) => Math.max(max,p.y+40),Math.max(420,rootGrid.h+144-minY))};
   }
 }
 /** Selection follows rendered edges, including relationships rolled up by collapsed groups. */
@@ -261,13 +269,14 @@ export function svgElement(tag, attrs = {}, text) {
   return el;
 }
 export class StrataDiagram {
-  constructor(element, { onSelect = () => {}, onCollapse = () => {}, animate = true, resolveIcon = id => "/assets/icons/"+id, motion = new DiagramMotion() } = {}) {
+  constructor(element, { onSelect = () => {}, onSelectNote = () => {}, onCollapse = () => {}, animate = true, resolveIcon = id => "/assets/icons/"+id, motion = new DiagramMotion() } = {}) {
     const textContext=document.createElement('canvas').getContext('2d');
     this.textFit=new TextFit((text,size,weight)=>{textContext.font=`${weight} ${size}px Arial`;return textContext.measureText(text).width;});
+    this.subheaders=new ItemSubheader(svgElement,this.textFit);
     this.iconTint=new IconTint(); this.motion = motion; this.animate = animate; this.resolveIcon=resolveIcon;
-    this.element = element; this.onSelect = onSelect; this.onCollapse = onCollapse; this.clickTimer = null; this.markerId = `strata-arrow-${++diagramSequence}`;
+    this.element = element; this.onSelect = onSelect; this.onSelectNote=onSelectNote; this.onCollapse = onCollapse; this.clickTimer = null; this.markerId = `strata-arrow-${++diagramSequence}`;
   }
-  render(model, { perspective, collapsed = new Set(), selected = null, theme = 'midnight', showLabels = true, detail=1, viewportWidth=1000, zoom=1 } = {}) {
+  render(model, { perspective, collapsed = new Set(), selected = null, selectedNote = null, theme = 'midnight', showLabels = true, showNotes = true, detail=1, viewportWidth=1000, zoom=1 } = {}) {
     const colors=resolveTheme(theme),typeColors=colors.palette;
     clearTimeout(this.clickTimer);
     const cacheKey = JSON.stringify([model,perspective,[...collapsed].sort()]);
@@ -281,9 +290,12 @@ export class StrataDiagram {
       this.detailCache={base,key:effectiveKey,layout:effective.size===collapsed.size ? base : new DiagramLayout(model).create(perspective,effective)};
     }
     const layout = this.detailCache.layout;
-    const focus = selectionFocus(layout,selected,model.resources);
-    const focusing = focus.primary !== null;
-    const svg = svgElement('svg', { xmlns: NS, viewBox: `0 0 ${layout.width} ${layout.height}`, role: 'img', 'aria-label': model.title });
+    const noteSelection=layout.notes.find(entry=>entry.note.number===selectedNote);
+    const focus = noteSelection ? noteSelectionFocus(noteSelection,model.resources,LIMITS.depth) : selectionFocus(layout,selected,model.resources);
+    const noteScene=new NoteRenderer(svgElement,this.textFit.measure).render(layout.notes,layout,colors,{showNotes,focus,selectedNote:noteSelection?.note.number ?? null,resources:model.resources});
+    const sceneHeight=noteScene.height-noteScene.minY, sceneWidth=noteScene.width-noteScene.minX;
+    const focusing = noteSelection!==undefined || focus.primary !== null;
+    const svg = svgElement('svg', { xmlns: NS, viewBox: `${noteScene.minX} ${noteScene.minY} ${sceneWidth} ${sceneHeight}`, role: 'img', 'aria-label': model.title });
     const defs = svgElement('defs');
     for (const [type,color] of Object.entries(typeColors)) {
       const filter=svgElement('filter',{id:this.markerId+'-tint-'+type,'color-interpolation-filters':'sRGB'});
@@ -292,7 +304,7 @@ export class StrataDiagram {
     }
     const marker = svgElement('marker', { id: this.markerId, viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 6, markerHeight: 6, orient: 'auto-start-reverse' });
     marker.append(svgElement('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: colors.muted }));
-    defs.append(marker); svg.append(defs,svgElement('rect',{width:layout.width,height:layout.height,fill:colors.canvas}));
+    defs.append(marker); svg.append(defs,svgElement('rect',{x:noteScene.minX,y:noteScene.minY,width:sceneWidth,height:sceneHeight,fill:colors.canvas}));
     const backgrounds = svgElement('g',{'data-layer':'containers'}), arrows = svgElement('g',{'data-layer':'arrows'}), foreground = svgElement('g',{'data-layer':'resources'});
     let hoverConnections;
     for (const node of layout.nodes) {
@@ -304,7 +316,7 @@ export class StrataDiagram {
       group.setAttribute('opacity',!focusing || connected ? '1' : contextual ? '0.55' : '0.16');
       group.setAttribute('data-focus',!focusing ? 'normal' : active ? 'selected' : connected ? 'connected' : contextual ? 'context' : 'dimmed');
       group.setAttribute('aria-pressed',String(active));
-      group.append(svgElement('rect', { x: node.x, y: node.y, width: node.w, height: node.h, rx: node.container && !node.collapsed ? 12 : 9, fill: node.container && !node.collapsed ? colors.container+'e8' : colors.tile, stroke: active ? color : connected ? color + '99' : colors.border, 'stroke-width': active ? 2.5 : connected ? 1.8 : 1.2 }));
+      group.append(svgElement('rect', { x: node.x, y: node.y, width: node.w, height: node.h, rx: node.container && !node.collapsed ? 12 : 9, fill: node.container && !node.collapsed ? colors.container+'e8' : colors.tile, stroke: active ? color : connected ? color + '99' : colors.border, 'stroke-width': active ? 2.5 : connected ? 1.8 : 1.2, ...containerStroke(r) }));
       group.append(svgElement('rect', { x: node.x + 16, y: node.y + 16, width: 27, height: 27, rx: 7, fill: color + '18' }));
       const iconHref=r.icon ? this.resolveIcon(r.icon) : null;
 
@@ -317,12 +329,12 @@ export class StrataDiagram {
       const titleFit=this.textFit.fit(r.name,node.w-71-(node.container && !node.collapsed ? 45 : 0),{weight:600});
       group.append(svgElement('text', { x: node.x + 53, y: node.y + 33, fill: colors.text, 'font-size':titleFit.size, 'font-weight': 600, 'font-family': 'Arial,sans-serif' }, titleFit.text));
 
-      if (!node.container || node.collapsed) {
-        const metadata=node.collapsed ? `${model.resources.filter(c => c.parent === r.id).length} components · collapsed` : r.type;
-        const metadataFit=this.textFit.fit(metadata,node.w-34,{max:16,spacing:.2});
-        group.append(svgElement('text', { x: node.x + 17, y: node.y + 72, fill: colors.muted, 'font-size':metadataFit.size, 'font-family': 'Arial,sans-serif', 'letter-spacing': .2 }, metadataFit.text));
-      } else {
-        group.append(svgElement('text', { x: node.x + node.w - 18, y: node.y + 32, fill: colors.muted, 'font-size':20, 'text-anchor': 'end' }, String(model.resources.filter(c => c.parent === r.id).length)));
+      const childCount=model.resources.filter(c=>c.parent===r.id).length;
+      const subheader=this.subheaders.render(node,childCount,colors);
+
+      if (subheader) { group.append(subheader); }
+      if (node.container && !node.collapsed) {
+        group.append(svgElement('text', { x: node.x + node.w - 18, y: node.y + 32, fill: colors.muted, 'font-size':20, 'text-anchor': 'end' }, String(childCount)));
       }
 
       const icon=tileIconPlacement(node,viewportWidth*zoom/layout.width);
@@ -408,7 +420,12 @@ export class StrataDiagram {
 
     }
     hoverConnections=new ConnectionHover(arrows,hoverEntries,{selectionActive:focusing});
-    svg.append(backgrounds, arrows, foreground);
+    svg.append(noteScene.connectors, backgrounds, arrows, foreground, noteScene.group);
+    const noteInteraction=new NoteInteraction(number=>{ clearTimeout(this.clickTimer); this.onSelectNote(number); });
+    for (const element of noteScene.group.querySelectorAll('[data-note],[data-note-text]')) {
+      const number=Number(element.getAttribute('data-note') ?? element.getAttribute('data-note-text'));
+      noteInteraction.bind(element,number,noteSelection?.note.number===number);
+    }
     svg.addEventListener('click', event => { event.stopPropagation(); this.clearSelection(); });
     this.motion.transition(this.svg,svg,{enabled:this.animate,duration:this.previousLayout === layout ? 180 : 420});
     this.element.replaceChildren(svg);

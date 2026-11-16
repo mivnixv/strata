@@ -80,6 +80,7 @@ main{padding:0}
 /* Reveal tile artwork on interaction without changing its type tint. */
 [data-resource] [data-tile-icon]{transition:opacity 180ms ease}
 [data-resource]:hover [data-tile-icon],
+[data-note]:focus{outline:none}
 [data-resource]:focus-visible [data-tile-icon],
 [data-resource][data-focus="selected"] [data-tile-icon],
 [data-resource][data-focus="connected"] [data-tile-icon]{opacity:1}
@@ -141,3 +142,16 @@ html[data-offline-view] .diagram-toolbar select{background:var(--theme-tile);col
 
 .description-toggle{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--theme-muted);cursor:pointer;white-space:nowrap}
 .description-toggle input{margin:0;accent-color:var(--type-app)}
+
+/* In-app reference: navigation, scoped sections, and compact option tables. */
+.guide nav{display:flex;flex-wrap:wrap;gap:8px 16px;margin:0 0 24px;padding:12px 0;border-bottom:1px solid var(--theme-border)}
+.guide nav a{color:var(--theme-text);text-underline-offset:3px}
+.guide section{margin:0 0 28px;scroll-margin-top:12px}
+.guide h3{margin:0 0 12px;font-size:18px}
+.guide h4{margin:20px 0 10px;font-size:15px;color:var(--theme-text)}
+.guide p,.guide li{line-height:1.65}
+.guide li+li{margin-top:6px}
+.guide table{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0 16px}
+.guide th,.guide td{text-align:left;vertical-align:top;padding:10px;border:1px solid var(--theme-border);line-height:1.5}
+.guide th{color:var(--theme-text);background:var(--theme-tile)}
+.guide td code{overflow-wrap:anywhere}

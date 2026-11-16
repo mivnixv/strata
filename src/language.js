@@ -1,3 +1,4 @@
+import { parseNoteDeclarations, formatNoteDeclaration } from './notes/source.js';
 import { validateModel, LIMITS } from './framework.js';
 const types = new Set(['app','service','database','infrastructure','external']);
 const identifier = /^[A-Za-z_][\w.-]*$/;
@@ -77,6 +78,20 @@ export function parseStrata(source) {
       target[t[0]]=t[0]==='sizes' ? t[1] : Number(t[1]);
       continue;
     }
+    if (t[0]==='dashed' && t.length===1 && current?.kind==='resource') {
+      current.resource.dashed=true; continue;
+    }
+    if (t[0]==='note' && t[1]!=='->') {
+      const target=current ? (current.kind==='resource' ? current.resource : current.view) : model;
+      target.notes ??= [];
+      target.notes.push(...parseNoteDeclarations(t,line,quoted)); continue;
+    }
+    if (t[0]==='noLargeIcon' && t.length===1 && current?.kind==='resource') {
+      current.resource.noLargeIcon=true; continue;
+    }
+    if (t[0]==='subheader' && t.length===2 && current?.kind==='resource') {
+      current.resource.subheader=quoted(t[1],line); continue;
+    }
     if (t[0] === 'icon' && t.length === 2 && current?.kind === 'resource') {
       current.resource.icon = quoted(t[1],line); continue;
     }
@@ -104,11 +119,17 @@ export function parseStrata(source) {
     if (t[0] === 'relations' && t[1] === 'only' && t.length === 2 && current?.kind === 'view') {
       current.view.inheritGlobalRelations = false; continue;
     }
+    const noteStart=t.findIndex((token,index)=>index>=3 && token==='note');
+    const relationNotes=[];
+
+    if (t[1]==='->' && noteStart!==-1) {
+      relationNotes.push(...parseNoteDeclarations(t.splice(noteStart),line,quoted));
+    }
     const dashed=t.at(-1)==='dashed' && (t.length===4 || t.length===6);
     const relationLength=t.length-(dashed ? 1 : 0);
     if ((!current || current.kind === 'view') && t[1] === '->' && (relationLength === 3 || (relationLength === 5 && t[3] === ':'))) {
       const target = current ? current.view.relations : model.relations;
-      target.push({from:id(t[0],line),to:id(t[2],line),label:relationLength === 5 ? quoted(t[4],line) : '',dashed});
+      target.push({from:id(t[0],line),to:id(t[2],line),label:relationLength === 5 ? quoted(t[4],line) : '',dashed,notes:relationNotes});
       relationCount++;
 
       if (relationCount > LIMITS.relations) { throw new Error(`Line ${line}: maximum ${LIMITS.relations} relationships.`); }
@@ -132,7 +153,10 @@ export function formatStrata(input) {
     if (!identifier.test(value)) { throw new Error(`ID “${value}” cannot be represented in Strata. Use letter-led IDs containing letters, digits, _, . or -.`); }
 
   }
+  const noteSource=notes=>notes.map(formatNoteDeclaration);
+  const relationSource=e=>`${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}${e.dashed ? ' dashed' : ''}${e.notes.length ? ' '+noteSource(e.notes).join(' ') : ''}`;
   const lines = [`diagram ${JSON.stringify(model.title)}`,''];
+  lines.push(...noteSource(model.notes));
   const queue = model.resources.filter(r => r.parent === null).map(resource => ({kind:'resource',resource,depth:0}));
   for (let i = 0; i < queue.length; i++) {
     const entry = queue[i], pad = '  '.repeat(entry.depth);
@@ -140,28 +164,34 @@ export function formatStrata(input) {
     if (entry.kind === 'close') { lines.push(pad + '}'); continue; }
 
     const r = entry.resource, children = model.resources.filter(c => c.parent === r.id);
-    const block = children.length > 0 || r.icon || r.description.length > 0 || r.sizes!==null || r.compactness!==null;
+    const block = r.noLargeIcon || r.subheader || r.dashed || r.notes.length>0 || children.length > 0 || r.icon || r.description.length > 0 || r.sizes!==null || r.compactness!==null;
     lines.push(`${pad}${r.type} ${r.id} ${JSON.stringify(r.name)}${block ? ' {' : ''}`);
+
+    if (r.dashed) { lines.push(`${pad}  dashed`); }
+    lines.push(...noteSource(r.notes).map(line=>`${pad}  ${line}`));
 
     for (const key of ['sizes','compactness']) {
       if (r[key]!==null) { lines.push(`${pad}  ${key} ${r[key]}`); }
     }
+    if (r.subheader) { lines.push(`${pad}  subheader ${JSON.stringify(r.subheader)}`); }
+    if (r.noLargeIcon) { lines.push(`${pad}  noLargeIcon`); }
     if (r.icon) { lines.push(`${pad}  icon ${JSON.stringify(r.icon)}`); }
     if (r.description) { lines.push(`${pad}  description ${JSON.stringify(r.description)}`); }
     if (block) { queue.splice(i+1,0,...children.map(resource => ({kind:'resource',resource,depth:entry.depth+1})),{kind:'close',depth:entry.depth}); }
 
   }
   lines.push('','# Relationships');
-  for (const e of model.relations) { lines.push(`${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}${e.dashed ? ' dashed' : ''}`); }
+  for (const e of model.relations) { lines.push(relationSource(e)); }
   for (const v of model.perspectives) {
     lines.push('',`view ${v.id} ${JSON.stringify(v.name)} {`);
 
     lines.push(`  sizes ${v.sizes}`,`  compactness ${v.compactness}`,`  detail ${v.detail}`);
+    lines.push(...noteSource(v.notes).map(line=>`  ${line}`));
     if (v.description) { lines.push(`  description ${JSON.stringify(v.description)}`); }
 
     if (!v.inheritGlobalRelations) { lines.push('  relations only'); }
     if (v.resources !== null) { lines.push(`  include${v.resources.length ? ' ' + v.resources.join(', ') : ''}`); }
-    for (const e of v.relations) { lines.push(`  ${e.from} -> ${e.to}${e.label ? ' : ' + JSON.stringify(e.label) : ''}${e.dashed ? ' dashed' : ''}`); }
+    for (const e of v.relations) { lines.push('  '+relationSource(e)); }
 
     lines.push('}');
   }

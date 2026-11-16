@@ -3,27 +3,188 @@
 <div class="workspace">
 <main>
 <div class="studio-grid" id="studio"><div class="editor-column" id="sidebar"><aside class="editor-controls" aria-label="Diagram navigation"><div class="view-selectors"><label class="view-select">Perspective<select id="perspective-select" aria-label="Perspective"></select></label><label class="view-select">Resource<select id="resource-select" aria-label="Resource"></select></label></div><label class="view-select theme-control">Theme<select id="theme-select" aria-label="Theme"></select></label><div class="heading-actions"><button id="toggle-editor">{ } Editor</button><button id="new-diagram">+ New</button><button id="import">↥ Import</button><button id="export">↧ Source</button><button id="export-html" class="primary">↧ Offline HTML</button><button id="help" title="Language guide">? Guide</button></div><div class="sidebar-status"><span id="save-status">Source saved in this browser</span></div></aside><section id="editor-pane" class="editor-pane"><div class="editor-toolbar"><span><b class="file-icon">{ }</b> architecture.strata</span><button id="format-source" title="Format valid source">Format</button></div><div class="editor-hint"><span>MODEL SOURCE</span><span>Live preview <i></i></span></div><textarea id="source" aria-label="Strata diagram source" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><div class="editor-status"><span id="editor-state" class="valid">● Valid model</span><span id="line-count"></span></div><div id="source-error" role="alert"></div></section>
-</div><div class="preview-column"><section class="diagram-shell"><div class="diagram-toolbar"><div><button id="toggle-sidebar" class="quiet" title="Collapse sidebar" aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true">◧</button><label class="detail-control">Detail <input id="detail" aria-label="Detail level" type="range" min="0" max="1" step="0.01" value="1"></label><label class="toggle"><input id="labels" type="checkbox" checked><span></span> Labels</label><label class="description-toggle"><input id="descriptions" type="checkbox"> Description</label><button id="collapse-all" class="quiet" title="Collapse all groups">⊟</button><button id="expand-all" class="quiet" title="Expand all groups">⊞</button><button id="export-svg" class="quiet" title="Export current view as SVG">↧ SVG</button></div><div class="legend"><span><i class="app"></i>App</span><span><i class="service"></i>Service</span><span><i class="database"></i>Data</span><span><i class="infrastructure"></i>Infra</span><span><i class="external"></i>External</span></div><div class="zoom"><button id="zoom-out" title="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" title="Zoom in">+</button><span class="divider"></span><button id="fit">Fit</button></div></div><div id="inspector" class="inspector" hidden></div><div class="canvas" id="canvas"><div id="diagram"></div><div class="empty" id="empty" hidden><strong>Your architecture starts here.</strong><p>Define a resource in the source to see it here.</p></div></div></section></div></div>
+</div><div class="preview-column"><section class="diagram-shell"><div class="diagram-toolbar"><div><button id="toggle-sidebar" class="quiet" title="Collapse sidebar" aria-label="Collapse sidebar" aria-controls="sidebar" aria-expanded="true">◧</button><label class="detail-control">Detail <input id="detail" aria-label="Detail level" type="range" min="0" max="1" step="0.01" value="1"></label><label class="toggle"><input id="labels" type="checkbox" checked><span></span> Labels</label><label class="description-toggle"><input id="notes" type="checkbox" checked> Show notes</label><label class="description-toggle"><input id="descriptions" type="checkbox"> Description</label><button id="collapse-all" class="quiet" title="Collapse all groups">⊟</button><button id="expand-all" class="quiet" title="Expand all groups">⊞</button><button id="export-svg" class="quiet" title="Export current view as SVG">↧ SVG</button></div><div class="legend"><span><i class="app"></i>App</span><span><i class="service"></i>Service</span><span><i class="database"></i>Data</span><span><i class="infrastructure"></i>Infra</span><span><i class="external"></i>External</span></div><div class="zoom"><button id="zoom-out" title="Zoom out">−</button><span id="zoom-value">100%</span><button id="zoom-in" title="Zoom in">+</button><span class="divider"></span><button id="fit">Fit</button></div></div><div id="inspector" class="inspector" hidden></div><div class="canvas" id="canvas"><div id="diagram"></div><div class="empty" id="empty" hidden><strong>Your architecture starts here.</strong><p>Define a resource in the source to see it here.</p></div></div></section></div></div>
 </main></div>
-<dialog id="guide"><div class="modal-heading"><h2>The Strata language</h2><button id="guide-close" class="quiet">✕</button></div><div class="guide"><p>One statement per line. Braces define hierarchy. Indentation is for readability. IDs are reusable references; labels are quoted strings.</p><pre>diagram "My architecture"
+<dialog id="guide">
+  <div class="modal-heading"><h2>Strata guide</h2><button id="guide-close" class="quiet" aria-label="Close guide">✕</button></div>
+  <div class="guide">
+    <nav aria-label="Guide sections">
+      <a href="#guide-start">Start</a>
+      <a href="#guide-items">Items</a>
+      <a href="#guide-connections">Connections &amp; views</a>
+      <a href="#guide-notes">Notes</a>
+      <a href="#guide-layout">Layout</a>
+      <a href="#guide-controls">Controls</a>
+      <a href="#guide-export">Save &amp; export</a>
+      <a href="#guide-limits">Limits</a>
+    </nav>
+
+    <section id="guide-start">
+      <h3>1. Start with a diagram</h3>
+      <p>One statement per line. Braces define hierarchy; indentation is for readability. Paste this into the editor:</p>
+      <pre>diagram "My architecture"
 
 app web "Web app"
 service platform "Platform" {
-  description "Core application services"
-  service api "API service"
-  database db "PostgreSQL"
+  subheader "Core application boundary"
+  dashed
+  service api "API" {
+    subheader "Validates requests"
+    noLargeIcon
+    note 1 "Keep request IDs" position top-right
+  }
+  database db "Database"
 }
-
 web -> api : "HTTPS"
-api -> db : "SQL"
+api -> db : "Query" note 2 "Read replica" connect dashed
 
-view overview "System overview" {
+view overview "Overview" {
   include web, platform
+}</pre>
+      <ul>
+        <li>Types: <code>app</code>, <code>service</code>, <code>database</code>, <code>infrastructure</code>, <code>external</code>.</li>
+        <li>IDs start with a letter or underscore, followed by letters, digits, underscores, dots, or hyphens. Resource IDs must be unique.</li>
+        <li>Strings use double quotes and JSON escapes. Use <code>\n</code> for a line break.</li>
+        <li><code>#</code> starts a comment outside a string. Forward references are supported.</li>
+        <li>Closing braces go on their own line. Inline blocks and semicolons are unsupported.</li>
+      </ul>
+    </section>
+
+    <section id="guide-items">
+      <h3>2. Items and containers</h3>
+      <p>Nest items inside an item's block to create a container. Add these options inside that block:</p>
+      <table>
+        <thead><tr><th>Option</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td><code>subheader "Request entry point"</code></td><td>Optional text beneath the title. Type names are not shown automatically.</td></tr>
+          <tr><td><code>description "Details"</code></td><td>Longer text, shown for the selected item when <b>Description</b> is enabled.</td></tr>
+          <tr><td><code>icon "svgs/solid/server.svg"</code></td><td>Custom header and large decorative icon. Paths are relative to <code>icons/</code>.</td></tr>
+          <tr><td><code>noLargeIcon</code></td><td>Hides the large decorative icon; keeps the small header icon and card size.</td></tr>
+          <tr><td><code>dashed</code></td><td>Dashed border on an item or container; solid is the default.</td></tr>
+          <tr><td><code>note 1 "Explanation"</code></td><td>Attaches a numbered mark and notebook block to the item.</td></tr>
+        </tbody>
+      </table>
+      <p>Subheaders shrink or truncate to fit and also appear on collapsed groups. A collapsed group without a custom subheader keeps its component-count summary. Item options do not automatically apply to descendants.</p>
+    </section>
+
+    <section id="guide-connections">
+      <h3>3. Connections and perspectives</h3>
+      <pre>service api "API"
+infrastructure queue "Queue"
+api -> queue : "Publish event" dashed
+
+view operations "Operations" {
+  include api, queue
 }
-view storage "Data access" {
-  api -> db : "Read / write"
-}
-view audit "Audit only" {
+view recovery "Recovery only" {
   relations only
-  api -> db : "Audit record"
-}</pre><p><b>Types:</b> <code>app</code>, <code>service</code>, <code>database</code>, <code>infrastructure</code>, <code>external</code>.</p><p><b>Views:</b> arrows outside a view are global. Arrows inside a view are local; by default, applicable global arrows are inherited too. Use <code>relations only</code> to opt out of globals. The <code>include</code> list is optional: local endpoints and their parent context are inferred automatically. Explicitly included groups show descendants. With no view declarations, an overview is created automatically.</p><p><b>Tile layout:</b> inside a resource or view, use <code>sizes auto</code>, <code>sizes uniform</code>, or <code>sizes proportional</code>, and <code>compactness 0.6</code> (0.1–1). Inside views, <code>detail 0.75</code> sets the initial detail budget (0–1). Zooming or resizing changes how much detail fits; 1 shows everything and 0 shows summary tiles.</p><p><b>Icons:</b> inside an item, add <code>icon "brands/brands_s/stripe_icon.svg"</code>. Paths are relative to <code>icons/</code>. Referenced icons are embedded in offline HTML; offline edits can reuse those embedded paths.</p><p><b>Dashed connections:</b> append <code>dashed</code> after the optional label: <code>api -&gt; queue : "Publish" dashed</code> or <code>api -&gt; queue dashed</code>. Connections are solid by default.</p><p><b>Comments:</b> use <code>#</code>. Forward references are supported. Strings use JSON escaping. IDs start with a letter or underscore and can contain digits, dots, hyphens, or underscores.</p><p><b>Editing:</b> preview updates after 300 ms. Invalid source keeps the last valid preview. Tab inserts two spaces; ⌘/Ctrl+Enter updates immediately.</p><p><b>Navigation:</b> select resources for details; double-click groups to collapse. Space toggles a focused group. Collapse only changes the view, never the source.</p><p><b>Persistence:</b> the last valid source is saved in this browser. Export <code>.strata</code> to keep it in Git. Import accepts Strata or compatible JSON; SVG exports the current perspective. Offline HTML embeds the full editor, model, styles, and renderer in a single file; it opens directly from disk without a server or internet connection. Export it again to save edits.</p><p><b>Limits:</b> 300 resources, 1,000 total global/perspective relationships, 30 views, 12 hierarchy levels, 1 MB source.</p></div></dialog><div id="toast" role="status" hidden></div><input id="file" type="file" accept=".strata,.txt,.json,text/plain,application/json" hidden><script type="module" src="app.js"></script></body></html>
+  queue -> api : "Retry"
+}</pre>
+      <ul>
+        <li>Connection labels are optional. Append <code>dashed</code> after the label for a dashed line.</li>
+        <li>Connections outside views are global. Views inherit applicable globals and may add local connections.</li>
+        <li><code>relations only</code> disables inherited global connections in that view.</li>
+        <li><code>include api, queue</code> selects items. Including a container includes its descendants.</li>
+        <li>Without <code>include</code>, local endpoints determine membership; views without local connections infer it from inherited globals.</li>
+        <li>Local endpoints include their ancestor context without unrelated siblings. Without any views, an overview is generated.</li>
+      </ul>
+    </section>
+
+    <section id="guide-notes">
+      <h3>4. Numbered notes</h3>
+      <h4>Choose the attachment</h4>
+      <pre>note 1 "Standalone context"
+service api "API" {
+  note 2 "Mark and note only"
+  note 3 "Larger item note" position right fontSize 18 connect : "Details" dashed
+}
+database db "Database"
+api -> db note 4 "Connection note" connect solid
+
+view data "Data" {
+  include api, db
+  note 5 "Standalone note for this view"
+}</pre>
+      <p>Top-level notes have no mark and appear across views. Notes inside items attach to those items; notes after an arrow attach to that connection. Standalone notes inside views appear only in that view. Numbers must be positive integers unique across the diagram.</p>
+      <h4>Customize the note</h4>
+      <table>
+        <thead><tr><th>Option</th><th>Default and scope</th></tr></thead>
+        <tbody>
+          <tr><td><code>fontSize 18.5</code></td><td>Note body text defaults to 14. Any positive finite size, including decimals.</td></tr>
+          <tr><td><code>position top-right</code></td><td>Item marks default to top-left. Does not move the notebook block.</td></tr>
+          <tr><td><code>connect</code></td><td>Optional solid line from a notebook block to its mark.</td></tr>
+          <tr><td><code>connect : "Label" dashed</code></td><td>Optional label and dashed/solid style. Omit <code>connect</code> for just a mark and note.</td></tr>
+        </tbody>
+      </table>
+      <p>Mark positions: <code>top-left</code>, <code>top</code>, <code>top-right</code>, <code>right</code>, <code>bottom-right</code>, <code>bottom</code>, <code>bottom-left</code>, <code>left</code>. Multiple marks stack along the chosen edge. Connectors follow their marks, including on collapsed items.</p>
+      <p>Options can appear in any order. A connector's label and <code>dashed</code>/<code>solid</code> follow <code>connect</code>. Standalone notes have no mark and cannot use connectors or item mark positions.</p>
+      <h4>Visibility and focus</h4>
+      <ul>
+        <li>Ruled notebook blocks use eight equal columns, in number order. Partial rows do not stretch.</li>
+        <li>Blocks, marks, and connectors start dimmed at 25% opacity.</li>
+        <li>Selecting an item reveals its related notes and marks; related annotation connectors become 50% visible. Colors stay unchanged.</li>
+        <li>Click a mark or block to focus only that note and its attachment. Other notes, including those on the same item, dim.</li>
+        <li><b>Show notes</b> toggles blocks, marks, and annotation connectors together.</li>
+        <li>Enter/Space activates a focused note. Empty canvas or Escape clears focus.</li>
+        <li>Notes follow view membership. Collapsed groups collect item marks and bundle external connection notes; internal connection notes hide until expansion.</li>
+      </ul>
+    </section>
+
+    <section id="guide-layout">
+      <h3>5. Layout and detail</h3>
+      <table>
+        <thead><tr><th>Option</th><th>Values</th><th>Scope</th></tr></thead>
+        <tbody>
+          <tr><td><code>sizes auto</code></td><td><code>auto</code>, <code>uniform</code>, <code>proportional</code></td><td>Item/container or view</td></tr>
+          <tr><td><code>compactness 0.6</code></td><td>0.1–1; higher values narrow gaps</td><td>Item/container or view</td></tr>
+          <tr><td><code>detail 0.75</code></td><td>0–1; 1 shows full detail, 0 rolls groups up</td><td>View</td></tr>
+        </tbody>
+      </table>
+      <p>Defaults: <code>sizes auto</code>, <code>compactness 0.6</code>, <code>detail 1</code>. Resource settings control that container's children. Zoom and viewport size affect how much detail fits; manual collapses persist across zoom.</p>
+    </section>
+
+    <section id="guide-controls">
+      <h3>6. Editor and navigation</h3>
+      <table>
+        <thead><tr><th>Action</th><th>Behavior</th></tr></thead>
+        <tbody>
+          <tr><td>Edit source</td><td>Preview updates after 300 ms. Invalid source keeps the last valid preview.</td></tr>
+          <tr><td>Ctrl/Cmd+Enter</td><td>Apply source immediately.</td></tr>
+          <tr><td>Tab in editor</td><td>Insert two spaces.</td></tr>
+          <tr><td>Format</td><td>Canonicalize valid source; removes comments.</td></tr>
+          <tr><td>Select an item</td><td>Reveal direct connections, endpoints, and related notes; dim unrelated content.</td></tr>
+          <tr><td>Double-click group / Space</td><td>Collapse or expand the group.</td></tr>
+          <tr><td>Wheel/trackpad over canvas</td><td>Zoom around the pointer, 40–300%.</td></tr>
+          <tr><td>Empty canvas / Escape</td><td>Clear selection.</td></tr>
+        </tbody>
+      </table>
+      <p>With no selection, hovering an item reveals its direct connections. Selection takes precedence over hover. Perspectives, zoom, selection, and collapse state never change source. Diagrams and notes animate together and respect reduced-motion preferences.</p>
+    </section>
+
+    <section id="guide-export">
+      <h3>7. Save, import, and export</h3>
+      <ul>
+        <li><b>Source:</b> saves the last valid server-mode source in this browser. Export <code>.strata</code> for a portable backup or Git.</li>
+        <li><b>Import:</b> accepts Strata text or compatible JSON. Import the bundled <code>src/example.strata</code> to explore 12 notes and their attachment options.</li>
+        <li><b>SVG:</b> exports the current view and note visibility after settling animations.</li>
+        <li><b>Offline HTML:</b> embeds source, all model resources/views, icons, styles, and renderer. Opens directly from disk without a server or internet.</li>
+        <li>Offline HTML starts as a full-window viewer without the source sidebar. Re-export to preserve in-memory changes; it cannot overwrite the original file automatically.</li>
+        <li>Existing browser-saved source is preserved when the bundled example changes.</li>
+      </ul>
+    </section>
+
+    <section id="guide-limits">
+      <h3>8. Limits</h3>
+      <table>
+        <thead><tr><th>Resource</th><th>Maximum</th></tr></thead>
+        <tbody>
+          <tr><td>Source</td><td>1 MB</td></tr>
+          <tr><td>Items / total connections / views / nesting</td><td>300 / 1,000 / 30 / 12 levels</td></tr>
+          <tr><td>Notes / text per note</td><td>1,000 / 5,000 characters</td></tr>
+          <tr><td>Subheader / connection or annotation label</td><td>500 characters</td></tr>
+        </tbody>
+      </table>
+      <p>Dense graphs can require crossings and shared routes. Labels shrink or truncate when needed; tooltips preserve original connection labels.</p>
+    </section>
+  </div>
+</dialog><div id="toast" role="status" hidden></div><input id="file" type="file" accept=".strata,.txt,.json,text/plain,application/json" hidden><script type="module" src="app.js"></script></body></html>

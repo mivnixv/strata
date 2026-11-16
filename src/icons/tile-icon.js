@@ -1,7 +1,7 @@
-/** Center the icon horizontally beneath the title/type area. */
+/** Center the icon horizontally beneath the title/subheader area. */
 export function tileIconPlacement(node,scale=1) {
 
-  if (node.container && !node.collapsed) { return null; }
+  if (node.resource?.noLargeIcon || (node.container && !node.collapsed)) { return null; }
 
   const size=Math.min(144,node.w-48,node.h-116);
 

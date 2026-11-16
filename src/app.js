@@ -28,7 +28,7 @@ $('theme-select').onchange=()=>{
 };
 const key = 'strata.source.v1';
 const starter = 'diagram "My architecture"\n\napp web "Web app"\n\nservice backend "Backend" {\n  service api "API service"\n  database db "Database"\n}\n\nweb -> api : "HTTPS"\napi -> db : "SQL"\n';
-let model = example, perspective = 'orders', selected = null, collapsed = new Set(), zoom = 1;
+let model = example, perspective = 'orders', selected = null, selectedNote = null, collapsed = new Set(), zoom = 1;
 let parseTimer, toastTimer;
 let popupDismissed=false;
 let detail = null;
@@ -45,8 +45,10 @@ function notify(message) {
 }
 const renderer = new StrataDiagram($('diagram'),{
   resolveIcon:id=>iconLibrary.resolve(id),
-  onSelect(id) { selected = id; popupDismissed=false; render(); },
+  onSelect(id) { selected = id; selectedNote=null; popupDismissed=false; render(); },
+  onSelectNote(number) { selected=null; selectedNote=number; $('notes').checked=true; popupDismissed=false; render(); },
   onCollapse(id,isCollapsed) {
+    selectedNote=null;
     if (isCollapsed) {
       collapsed.delete(id); detail=1;
     } else { collapsed.add(id); }
@@ -62,9 +64,9 @@ function render() {
   }
   perspectives.value = perspective;
   const level=detail ?? view.detail; $('detail').value=String(level);
-  const layout = renderer.render(model,{theme,perspective,collapsed,selected,detail:level,viewportWidth:Math.max(1,$('canvas').clientWidth),zoom,showLabels:$('labels').checked});
+  const layout = renderer.render(model,{theme,perspective,collapsed,selected,selectedNote,detail:level,viewportWidth:Math.max(1,$('canvas').clientWidth),zoom,showNotes:$('notes').checked,showLabels:$('labels').checked});
   $('diagram').style.width = `${zoom*100}%`; $('zoom-value').textContent = `${Math.round(zoom*100)}%`;
-  $('empty').hidden = layout.nodes.length > 0;
+  $('empty').hidden = layout.nodes.length > 0 || layout.notes.length > 0;
   const resources = $('resource-select'); resources.replaceChildren();
   const placeholder = text('option','Select resource…'); placeholder.value = ''; resources.append(placeholder);
   for (const node of layout.nodes) {
@@ -106,7 +108,7 @@ function applySource() {
 
   }
 }
-function loadSource(source) { $('source').value = source; collapsed.clear(); selected = null; popupDismissed=false; applySource(); }
+function loadSource(source) { $('source').value = source; collapsed.clear(); selected = null; selectedNote=null; popupDismissed=false; applySource(); }
 $('source').oninput = () => { clearTimeout(parseTimer); $('editor-state').textContent = 'Updating…'; parseTimer = setTimeout(applySource,300); };
 $('source').onkeydown = e => {
 
@@ -125,10 +127,11 @@ $('new-diagram').onclick = () => {
   download('previous-diagram.strata',$('source').value,'text/plain'); loadSource(starter);
   notify('Starter loaded. Previous source downloaded as a backup.');
 };
-$('perspective-select').onchange = e => { perspective = e.target.value; selected = null; detail=null; render(); };
-$('resource-select').onchange = e => { selected = e.target.value || null; popupDismissed=false; render(); };
+$('perspective-select').onchange = e => { perspective = e.target.value; selected = null; selectedNote=null; detail=null; render(); };
+$('resource-select').onchange = e => { selected = e.target.value || null; selectedNote=null; popupDismissed=false; render(); };
 $('detail').oninput = e => { detail=Number(e.target.value);render(); };
 $('labels').onchange = render;
+$('notes').onchange = () => { selectedNote=null; render(); };
 $('descriptions').onchange = () => { popupDismissed=false; render(); };
 $('collapse-all').onclick = () => { collapsed = new Set(model.resources.map(r => r.id)); render(); };
 $('expand-all').onclick = () => { collapsed.clear(); detail=1; $('detail').value='1'; render(); };
@@ -161,7 +164,7 @@ $('export-html').onclick = async () => {
     }
 
     const icons=await iconLibrary.collect(parseStrata($('source').value).resources);
-    const html = createOfflineHtml(template,$('source').value,{theme,perspective,collapsed:[...collapsed],detail,zoom,showLabels:$('labels').checked,showDescriptions:$('descriptions').checked},icons);
+    const html = createOfflineHtml(template,$('source').value,{theme,perspective,collapsed:[...collapsed],detail,zoom,showNotes:$('notes').checked,showLabels:$('labels').checked,showDescriptions:$('descriptions').checked},icons);
     download('architecture.html',html,'text/html');
     notify('Offline HTML exported — open it directly in any modern browser.');
   } catch(error) { notify(error.message); }
@@ -215,6 +218,7 @@ if (bootstrap) {
   if (Number.isFinite(presentation.detail) && presentation.detail>=0 && presentation.detail<=1) { detail=presentation.detail; $('detail').value=String(detail); }
   if (Number.isFinite(presentation.zoom)) { zoom = Math.min(3,Math.max(.4,presentation.zoom)); }
   $('descriptions').checked=presentation.showDescriptions===true;
+  if (typeof presentation.showNotes === 'boolean') { $('notes').checked=presentation.showNotes; }
   if (typeof presentation.showLabels === 'boolean') { $('labels').checked = presentation.showLabels; }
 
   render();

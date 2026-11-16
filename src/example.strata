@@ -4,6 +4,9 @@
 # Public journey: https://www.aboutamazon.com/news/operations/how-do-amazon-packages-get-delivered
 diagram "Amazon-style commerce"
 
+# Standalone note: no attachment or mark. Click it to focus the note itself.
+note 1 "Illustrative retail architecture. Click a note or numbered mark to isolate its explanation."
+
 app clients "Customer channels" {
 
   icon "svgs/solid/users.svg"
@@ -19,10 +22,15 @@ app clients "Customer channels" {
 }
 
 service platform "Commerce platform" {
+  subheader "Checkout, fulfillment, and after-sales"
 
   icon "svgs/solid/sitemap.svg"
   description "Illustrative Amazon-style commerce built on our existing infrastructure."
+  # Container note: its mark stays with this boundary when the group is collapsed.
+  note 2 "Commerce boundary: checkout, fulfillment, returns, and recovery." connect : "System boundary" dashed
   infrastructure gateway "API gateway" {
+    subheader "Customer request entry point"
+    noLargeIcon
     icon "svgs/solid/network_wired.svg"
     description "Routes customer requests and forwards checkout idempotency keys."
   }
@@ -40,10 +48,15 @@ service platform "Commerce platform" {
     service orders "Place & confirm order" {
       icon "svgs/solid/receipt.svg"
       description "Reserves stock, authorizes payment, and commits the order with an outbox event."
+      # Two notes on the same item: mark-only and a larger note with a solid connector.
+      note 3 "Accept the order only after reserving stock and authorizing payment."
+      note 4 "Preserve the checkout idempotency key across retries." position top-right fontSize 18 connect : "Retry contract" solid
     }
     service inventory "Reserve inventory" {
       icon "svgs/solid/boxes.svg"
       description "Reserves stock in PostgreSQL and releases cancelled or expired reservations."
+      # Decimal font size and an optional labelled dashed annotation line.
+      note 5 "Release reservations for cancelled or expired orders." position left fontSize 12.5 connect : "Reservation lifetime" dashed
     }
     service payments "Authorize & settle" {
       icon "svgs/solid/credit_card.svg"
@@ -97,8 +110,10 @@ database data "Existing infrastructure" {
   icon "svgs/solid/server.svg"
   description "Reuses the existing database, cache, and event broker."
   database postgres "PostgreSQL" {
+    subheader "Durable system of record"
     icon "brands/brands_p/postgresql_icon.svg"
     description "Stores authoritative orders, stock, payments, shipments, and outbox records."
+    note 6 "PostgreSQL is the source of truth. Redis remains a disposable cache."
   }
   database redis "Redis cache" {
     icon "brands/brands_r/redis_icon.svg"
@@ -142,13 +157,15 @@ orders -> redis : "Read cart; revalidate price"
 orders -> inventory : "3. Reserve"
 inventory -> postgres : "Atomic stock reservation"
 orders -> payments : "4. Authorize"
-payments -> provider : "Authorize; capture later"
+# Relationship note: the mark belongs to this connection, not either endpoint.
+payments -> provider : "Authorize; capture later" note 7 "Authorization happens at checkout; capture waits until dispatch." connect : "Payment timing" solid
 orders -> postgres : "5. Commit"
 payments -> postgres : "Payment references"
 
 # Committed events connect order acceptance to physical fulfillment.
 postgres -> relay : "Committed outbox only"
-relay -> queue : "6. Publish"
+# An attached relationship note can omit its annotation connector entirely.
+relay -> queue : "6. Publish" note 8 "Queue delivery may repeat. Consumers deduplicate committed events."
 queue -> fulfillment : "7. Fulfill"
 fulfillment -> warehouse : "8. Pick/pack"
 warehouse -> shipping : "9. Packed"
@@ -179,6 +196,8 @@ queue -> recovery : "Repeated processing failure"
 recovery -> postgres : "Persist exception / replay ID"
 
 view orders "Order lifecycle" {
+  # View-local standalone note; this ninth visible note starts the next notebook row.
+  note 9 "Follow steps 1–13 from checkout to delivery. This explanation appears only in Order lifecycle." fontSize 16
   description "Follow a headphone order from checkout to delivery."
   include web, gateway, orders, inventory, payments, relay, fulfillment, shipping, tracking, notifications, postgres, redis, queue, provider, warehouse, carrier
 }
@@ -196,10 +215,12 @@ view fulfillment "Fulfillment & delivery" {
 view aftersales "Returns & refunds" {
   description "Inspect eligible returns, refund payments, and restock sellable goods."
   include web, gateway, returns, warehouse, inventory, refunds, provider, postgres, notifications
-  warehouse -> returns : "Inspection outcome"
+  # A note attached to a view-local connection never leaks to other perspectives.
+  warehouse -> returns : "Inspection outcome" note 10 "Inspect the returned item before approving restocking and a refund." connect : "Inspection gate" dashed
 }
 
 view failures "Failures & recovery" {
+  note 11 "Retry recoverable failures; persist unresolved exceptions for reconciliation." fontSize 15.5
   description "Cancel unshipped orders and recover from processing or delivery failures."
   # Optional: keep this perspective focused on its own relationships.
   # Resource membership is inferred from these endpoints and their parent groups.
@@ -210,7 +231,7 @@ view failures "Failures & recovery" {
   payments -> provider : "Void request"
   cancellation -> postgres : "Cancellation record"
   fulfillment -> recovery : "Pick/pack failure"
-  shipping -> recovery : "Capture failed; hold"
+  shipping -> recovery : "Capture failed; hold" note 12 "Hold the parcel until payment capture succeeds." connect dashed
   carrier -> recovery : "Delivery exception"
   queue -> recovery : "Processing retries exhausted"
   recovery -> postgres : "Persist and reconcile"

@@ -25,7 +25,7 @@ export class StandaloneBuilder {
     const example=parseStrata(source);
     const root=new URL('../src/',import.meta.url);
     const read=name=>this.read(new URL(name,root),'utf8');
-    const names = ['themes/themes.js','typography/fit.js','icons/tint.js','icons/library.js','connections/endpoints/geometry.js','connections/dashed/style.js','connections/overlap.js','connections/hover.js','icons/tile-icon.js','zoom/pan.js','zoom/wheel.js','tiling/options.js','tiling/semantic.js','tiling/allocation.js','tiling/packing.js','motion.js','routing.js','tiling/engine.js','framework.js','language.js','example.js','offline-export.js','app.js'];
+    const names = ['items/no-large-icon/no-large-icon.js','items/subheader/subheader.js','notes/position.js','notes/selection.js','notes/source.js','containers/dashed/style.js','notes/notes.js','themes/themes.js','typography/fit.js','icons/tint.js','icons/library.js','connections/endpoints/geometry.js','connections/dashed/style.js','connections/overlap.js','connections/hover.js','icons/tile-icon.js','zoom/pan.js','zoom/wheel.js','tiling/options.js','tiling/semantic.js','tiling/allocation.js','tiling/packing.js','motion.js','routing.js','tiling/engine.js','framework.js','language.js','example.js','offline-export.js','app.js'];
     const modules = await Promise.all(names.map(name => {
 
       if (name === 'example.js') { return 'export const example = '+JSON.stringify(example)+';\n'; }

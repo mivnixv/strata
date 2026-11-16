@@ -5,6 +5,44 @@ file that works offline. No runtime dependencies.
 
 [Open the builder](https://mivnixv.github.io/strata/) to edit diagrams in your browser.
 
+## Features
+
+- **Diagrams as text:** define apps, services, databases, infrastructure, and
+  external systems with nested containers and labelled relationships.
+- **Automatic layout:** hierarchical tiles and routed connections, with
+  collapsible groups, zoom, and adaptive detail.
+- **Item subheaders:** add custom secondary text with `subheader "Text"` instead
+  of automatic type labels, on both items and containers.
+- **Perspectives:** show focused views with shared or view-specific relationships.
+- **Connection and border styles:** solid or dashed connections, plus dashed
+  container and item borders.
+- **Numbered notes:** attach notes to items, containers, or connections; add
+  standalone or view-specific notes. Item marks use dashed circles and default
+  to top-left.
+- **Mark positioning:** place item marks at any corner or side with `position`.
+  Multiple marks stack along the chosen edge; connectors follow their marks,
+  including when their item is collapsed.
+- **Notebook blocks:** compact ruled pages use eight equal columns and wrap after
+  eight notes. Text defaults to size 14; `fontSize` accepts custom decimal sizes.
+- **Optional note connectors:** connect note blocks to their numbered marks with
+  labelled solid or dashed lines, or show just a mark and note.
+- **Note focus and visibility:** notes, marks, and connectors start dimmed.
+  Selecting an item reveals related notes; clicking a mark or block focuses only
+  that note and its attachment. Enter/Space activates notes; Escape clears focus.
+  **Show notes** toggles blocks, marks, and connectors together.
+- **Animated transitions:** diagram elements and notes fade in and out, with
+  smooth selection changes and support for reduced-motion preferences.
+- **Themes and icons:** choose from seven themes and use bundled brand, cloud,
+  Kubernetes, and general icons. Use `noLargeIcon` to hide an item's large decorative
+  icon while keeping its small header icon.
+- **Browser editor:** live preview, source formatting, resource descriptions,
+  JSON import, and local source persistence.
+- **Portable exports:** export SVG or self-contained offline HTML with embedded
+  icons. Validate and build diagrams from the CLI without runtime dependencies.
+- **Built-in example:** explore an [order lifecycle](src/example.strata) with
+  12 notes demonstrating attachments, mark positions, connector styles, font sizes,
+  and view scope.
+
 ## Quick start
 
 Requires Node.js 20.11+. No dependency installation needed.
@@ -25,7 +63,9 @@ Save as `architecture.strata`:
 diagram "My system"
 
 app web "Web app"
-service api "API"
+service api "API" {
+  subheader "Handles incoming requests"
+}
 database db "Database" {
   icon "brands/brands_p/postgresql_icon.svg"
 }
@@ -35,8 +75,29 @@ api -> db : "SQL"
 ```
 
 Append `dashed` for a dashed connection: `web -> api : "HTTPS" dashed`.
+Add `dashed` inside a resource block for a dashed container or item border.
+Use `note 1 "Text"` independently, inside an item block, or after a connection
+to add a numbered note. See [notes](src/notes/README.md) and
+[dashed borders](src/containers/dashed/README.md).
 
 See [`examples/`](examples/) for complex subscription, data pipeline, and release workflows.
+
+## Position note marks
+
+Set `position` on a note inside an item or container block:
+
+```text
+service api "API" {
+  note 1 "Uses the default top-left mark"
+  note 2 "Checks requests" position top-right
+  note 3 "Preserves request IDs" position bottom fontSize 18 connect : "Logging" dashed
+}
+```
+
+Supported positions: `top-left` (default), `top`, `top-right`, `right`,
+`bottom-right`, `bottom`, `bottom-left`, and `left`. The option positions the mark;
+the notebook block stays in the notes grid. General and connection notes do not
+accept item mark positions. See [note options](src/notes/README.md).
 
 ## Validate and export
 
@@ -66,6 +127,10 @@ Browse [`brands/`](icons/brands/), [`AWS`](icons/aws19/),
 Bundled icons also work through `npx` without downloading them separately.
 
 Standalone HTML embeds the referenced bundled icons.
+
+Add `noLargeIcon` inside an item block to suppress its large decorative icon, even
+when the card has room. The small header icon remains. See
+[large icon visibility](src/items/no-large-icon/README.md).
 
 [CLI options](cli/README.md) · [Full guide](docs/guide.md) · [GitHub Pages setup](publishing/README.md)
 

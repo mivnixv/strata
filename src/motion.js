@@ -105,7 +105,12 @@ function captureGroup(element) {
 function captureScene(svg) {
   return {
     nodes:new Map([...svg.querySelectorAll('[data-resource]')].map(element => [element.getAttribute('data-resource'),captureGroup(element)])),
-    edges:new Map([...svg.querySelectorAll('[data-edge-key]')].map(element => [element.getAttribute('data-edge-key'),captureGroup(element)]))
+    edges:new Map([...svg.querySelectorAll('[data-edge-key]')].map(element => [element.getAttribute('data-edge-key'),captureGroup(element)])),
+    // Crossfade changed note geometry, including curved connectors, as complete groups.
+    notes:new Map([...svg.querySelectorAll('[data-note],[data-note-text],[data-note-connector]')].map(element => {
+      const kind=['data-note','data-note-text','data-note-connector'].find(name=>element.hasAttribute(name));
+      return [JSON.stringify([kind,element.getAttribute(kind),element.innerHTML]),captureGroup(element)];
+    }))
   };
 }
 function contextAnchor(group,other,own) {
@@ -133,7 +138,7 @@ export class DiagramMotion {
 
     if (!enabled || this.timeline.reducedMotion()) { return; }
 
-    const before = previous ? captureScene(previous) : {nodes:new Map(),edges:new Map()};
+    const before = previous ? captureScene(previous) : {nodes:new Map(),edges:new Map(),notes:new Map()};
     const after = captureScene(next), tweens = [], fades = [], finals = [];
     const disclosure={
       exiting:[...before.nodes.keys()].some(id=>!after.nodes.has(id)),
@@ -176,6 +181,9 @@ export class DiagramMotion {
 
       addOpacity(group,old?.opacity ?? 0,group.opacity,old ? 0 : 35);
     }
+    for (const [id,group] of after.notes) {
+      addOpacity(group,before.notes.get(id)?.opacity ?? 0,group.opacity);
+    }
     this.addExits(before,after,next,fades,tweens,finals);
     const finalView = next.getAttribute('viewBox');
     const oldView = (previous?.getAttribute('viewBox') ?? finalView).split(/\s+/).map(Number);
@@ -201,6 +209,8 @@ export class DiagramMotion {
 
       const eased = easeMotion(phase.layout);
       next.setAttribute('viewBox',newView.map((v,i) => oldView[i]+(v-oldView[i])*eased).join(' '));
+      background?.setAttribute('x',String(oldView[0]+(newView[0]-oldView[0])*eased));
+      background?.setAttribute('y',String(oldView[1]+(newView[1]-oldView[1])*eased));
       background?.setAttribute('width',String(oldView[2]+(newView[2]-oldView[2])*eased));
       background?.setAttribute('height',String(oldView[3]+(newView[3]-oldView[3])*eased));
       for (const tween of tweens) { tween.apply(eased,phase.layout); }
@@ -213,6 +223,7 @@ export class DiagramMotion {
     },() => {
       for (const finish of finals) { finish(); }
       next.setAttribute('viewBox',finalView);
+      background?.setAttribute('x',String(newView[0])); background?.setAttribute('y',String(newView[1]));
       background?.setAttribute('width',String(newView[2])); background?.setAttribute('height',String(newView[3]));
       this.ghosts?.remove(); this.ghosts = null; next.removeAttribute('data-animating');
     });
@@ -272,13 +283,13 @@ export class DiagramMotion {
     const ghosts = document.createElementNS('http://www.w3.org/2000/svg','g');
     ghosts.setAttribute('aria-hidden','true'); ghosts.setAttribute('pointer-events','none');
     ghosts.setAttribute('data-motion-ghosts',''); this.ghosts = ghosts;
-    for (const kind of ['nodes','edges']) {
+    for (const kind of ['nodes','edges','notes']) {
       for (const [id,old] of before[kind]) {
 
         if (after[kind].has(id)) { continue; }
 
         const clone = old.element.cloneNode(true);
-        for (const name of ['data-resource','data-edge-key','data-from','data-to','tabindex','role','aria-pressed']) { clone.removeAttribute(name); }
+        for (const name of ['data-resource','data-edge-key','data-from','data-to','data-note','data-note-text','data-note-connector','tabindex','role','aria-pressed']) { clone.removeAttribute(name); }
         ghosts.append(clone);
         const group = captureGroup(clone);
         fades.push({element:clone,from:old.opacity,to:0,delay:0,exiting:true});
