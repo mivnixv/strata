@@ -79,8 +79,8 @@ main{padding:0}
 
 /* Reveal tile artwork on interaction without changing its type tint. */
 [data-resource] [data-tile-icon]{transition:opacity 180ms ease}
-[data-resource]:hover [data-tile-icon],
 [data-note]:focus,[data-note-text]:focus{outline:none}
+[data-resource]:hover [data-tile-icon],
 [data-resource]:focus-visible [data-tile-icon],
 [data-resource][data-focus="selected"] [data-tile-icon],
 [data-resource][data-focus="connected"] [data-tile-icon]{opacity:1}
