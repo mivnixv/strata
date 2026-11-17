@@ -100,7 +100,7 @@ button.primary{background:var(--type-app);color:var(--theme-canvas);border-color
 .editor-toolbar,.editor-status{border-color:var(--theme-border)}
 .editor-hint,.editor-status,.sidebar-status,.editor-controls .view-select,.detail-control,.legend,.zoom,.inspector p{color:var(--theme-muted)}
 .detail-control input{accent-color:var(--type-app)}
-.legend .app{background:var(--type-app)}.legend .service{background:var(--type-service)}.legend .database{background:var(--type-database)}.legend .infrastructure{background:var(--type-infrastructure)}.legend .external{background:var(--type-external)}
+.legend .app{background:var(--type-app)}.legend .service{background:var(--type-service)}.legend .database{background:var(--type-database)}.legend .infrastructure{background:var(--type-infrastructure)}.legend .external{background:var(--type-external)}.legend .group{background:var(--type-group)}
 .editor-controls .theme-control{flex-direction:row;align-items:center;gap:8px}
 .editor-controls .theme-control select{flex:1;width:auto}
 

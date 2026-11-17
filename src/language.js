@@ -1,6 +1,6 @@
 import { parseNoteDeclarations, formatNoteDeclaration } from './notes/source.js';
 import { validateModel, LIMITS } from './framework.js';
-const types = new Set(['app','service','database','infrastructure','external']);
+const types = new Set(['app','service','database','infrastructure','external','group']);
 const identifier = /^[A-Za-z_][\w.-]*$/;
 function tokensFor(line, lineNumber) {
   const result = [];

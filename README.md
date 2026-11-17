@@ -7,8 +7,8 @@ file that works offline. No runtime dependencies.
 
 ## Features
 
-- **Diagrams as text:** define apps, services, databases, infrastructure, and
-  external systems with nested containers and labelled relationships.
+- **Diagrams as text:** define apps, services, databases, infrastructure,
+  external systems, and generic groups with nested containers and labelled relationships.
 - **Automatic layout:** hierarchical tiles and routed connections, with
   collapsible groups, zoom, and adaptive detail.
 - **Item subheaders:** add custom secondary text with `subheader "Text"` instead
@@ -74,6 +74,9 @@ database db "Database" {
 web -> api : "HTTPS"
 api -> db : "SQL"
 ```
+
+Use `group backend "Backend" {` to declare a generic container and nest items
+inside its block. See [groups](src/items/group/README.md).
 
 Append `dashed` for a dashed connection: `web -> api : "HTTPS" dashed`.
 Add `dashed` inside a resource block for a dashed container or item border.

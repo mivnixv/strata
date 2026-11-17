@@ -63,7 +63,7 @@ view overview "System overview" {
 | Statements | One statement per line; closing braces occupy their own line. |
 | Hierarchy | Braces define nesting. Indentation is for readability. |
 | Item declaration | `TYPE ID "Display name"`, optionally followed by `{`. |
-| Types | `app`, `service`, `database`, `infrastructure`, `external`. |
+| Types | `app`, `service`, `database`, `infrastructure`, `external`, `group`. |
 | IDs | Start with a letter or underscore; then letters, digits, `_`, `.`, or `-`. Resource IDs are unique; view IDs are unique within views. |
 | Strings | Double-quoted, with JSON escapes such as `\"` and `\n`. |
 | Comments | `#` outside a quoted string starts a comment. |
@@ -77,6 +77,18 @@ creates a system overview automatically.
 An item becomes a container when other items are nested inside its block.
 Resource types determine icons and colors; cards do not display automatic type
 names.
+
+Use `group` for a generic container with no specific architectural role:
+
+```text
+group backend "Backend" {
+  service api "API"
+  database db "Database"
+}
+```
+
+Groups use the same options, connections, nesting, and collapse behavior as other
+items. Empty groups are allowed and render as ordinary items until they have children.
 
 ### Item options
 

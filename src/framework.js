@@ -19,7 +19,7 @@ import { DiagramMotion } from './motion.js';
 import { OrthogonalRouter } from './routing.js';
 /** Strata: dependency-free, model-first architecture diagrams. */
 export const LIMITS = Object.freeze({ resources: 300, relations: 1000, perspectives: 30, depth: 12, bytes: 1_000_000 });
-const palette = { app: '#b39aff', service: '#7cb8fa', database: '#ecc070', infrastructure: '#83cdb2', external: '#b7acc8' };
+const palette = { app: '#b39aff', service: '#7cb8fa', database: '#ecc070', infrastructure: '#83cdb2', external: '#b7acc8', group: '#b8c8e1' };
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const string = (value, label) => {
 

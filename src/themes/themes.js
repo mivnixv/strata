@@ -7,7 +7,7 @@ const themeRows=[
  ['dracula','Dracula','#10111b','#202231','#34374e','#8186ad','#fffffa','#d0d2e9','#bd93f9','#8be9fd','#f1fa8c','#50fa7b','#ff79c6'],
  ['contrast','High contrast','#000000','#0c0c0c','#242424','#a0a0a0','#ffffff','#eeeeee','#d5e5f5','#80d5ff','#ffe080','#83f0ad','#e0e6eb']
 ];
-export const themes=Object.freeze(themeRows.map(([id,name,canvas,container,tile,border,text,muted,app,service,database,infrastructure,external])=>Object.freeze({id,name,canvas,container,tile,border,text,muted,palette:Object.freeze({app,service,database,infrastructure,external})})));
+export const themes=Object.freeze(themeRows.map(([id,name,canvas,container,tile,border,text,muted,app,service,database,infrastructure,external])=>Object.freeze({id,name,canvas,container,tile,border,text,muted,palette:Object.freeze({app,service,database,infrastructure,external,group:muted})})));
 export function resolveTheme(id) { return themes.find(theme=>theme.id===id) ?? themes[0]; }
 export function applyTheme(element,id) {
  const theme=resolveTheme(id);
