@@ -45,7 +45,7 @@ test('invalid source and missing templates fail before download', () => {
   assert.throws(() => createOfflineHtml('<html></html>',''), /template/);
 });
 test('offline exports retain global, additive and isolated perspective relationships', () => {
-  const source = 'service api "API"\ndatabase db "DB"\napi -> db : "shared"\nview additive "Additive" {\n db -> api : "reply"\n}\nview isolated "Isolated" {\n relations only\n api -> db : "audit"\n}';
+  const source = "service api \"API\"\ndatabase db \"DB\"\napi -> db \"shared\"\nview additive \"Additive\" {\n db -> api \"reply\"\n}\nview isolated \"Isolated\" {\n relations: local\n api -> db \"audit\"\n}";
   const html = createOfflineHtml(template,source,{perspective:'isolated'});
   const saved = bootstrap(html);
   assert.equal(saved.source,source);

@@ -7,12 +7,12 @@ test('canonical source round-trips the full example without losing data', () => 
   assert.deepEqual(parseStrata(formatStrata(example)), validateModel(example));
 });
 test('supports nested resources, forward references, comments, descriptions and default view', () => {
-  const m = parseStrata('diagram "Shop"\nweb -> api : "HTTPS" # forward reference\napp web "Web #1"\nservice backend "Backend" {\n description "Hello \\"world\\""\n service api "API"\n}\n');
+  const m = parseStrata("diagram \"Shop\"\nweb -> api \"HTTPS\" # forward reference\napp web \"Web #1\"\nservice backend \"Backend\" {\n description: \"Hello \\\"world\\\"\"\n service api \"API\"\n}\n");
   assert.equal(m.resources[2].parent,'backend'); assert.equal(m.resources[1].description,'Hello "world"');
   assert.equal(m.relations[0].label,'HTTPS'); assert.deepEqual(m.perspectives[0].resources,['web','backend']);
 });
 test('custom perspectives select explicit resources', () => {
-  const m = parseStrata('service api "API"\ndatabase db "DB"\nview data "Data" {\ninclude api, db\n}');
+  const m = parseStrata("service api \"API\"\ndatabase db \"DB\"\nview data \"Data\" {\ninclude: [api, db]\n}");
   assert.deepEqual(m.perspectives[0].resources,['api','db']);
 });
 test('syntax diagnostics identify the offending line or unclosed block', () => {
@@ -20,7 +20,7 @@ test('syntax diagnostics identify the offending line or unclosed block', () => {
   assert.throws(() => parseStrata('}'), /Line 1.*matching/);
   assert.throws(() => parseStrata('service api API'), /Line 1.*quoted/);
   assert.throws(() => parseStrata('service api "API"\n!bad'), /Line 2.*column/);
-  assert.throws(() => parseStrata('view v "V" {\ninclude api,\n}'), /Line 2.*commas/);
+  assert.throws(() => parseStrata("view v \"V\" {\ninclude: [api db]\n}"), /Line 2.*expected/);
   assert.throws(() => parseStrata('diagram "One"\ndiagram "Two"'), /only once/);
 });
 test('rejects duplicate resource IDs and unresolved references', () => {
@@ -36,7 +36,7 @@ test('quoted hostile text stays data; executable syntax is rejected', () => {
   assert.throws(() => parseStrata('alert(1)'), /Line 1/);
 });
 test('perspective explanations round-trip and reject invalid descriptions', () => {
-  const source = 'service api "API"\nview all "Checkout" {\n description "Reserve stock, then authorize.\\nCommit order and outbox together."\n include api\n}';
+  const source = "service api \"API\"\nview all \"Checkout\" {\n description: \"Reserve stock, then authorize.\\nCommit order and outbox together.\"\n include: [api]\n}";
   const model = parseStrata(source);
   assert.equal(model.perspectives[0].description,'Reserve stock, then authorize.\nCommit order and outbox together.');
   assert.deepEqual(parseStrata(formatStrata(model)),model);

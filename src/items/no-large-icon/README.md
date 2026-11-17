@@ -1,12 +1,12 @@
 # Suppress the large tile icon
 
-Add `noLargeIcon` inside an item or container block:
+Add `large-icon: false` inside an item or container block:
 
 ```text
 service api "API" {
-  subheader "Validates incoming requests"
-  icon "svgs/solid/server.svg"
-  noLargeIcon
+  subheader: "Validates incoming requests"
+  icon: "svgs/solid/server.svg"
+  large-icon: false
 }
 ```
 

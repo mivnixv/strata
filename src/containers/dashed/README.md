@@ -1,10 +1,10 @@
 # Dashed container borders
 
-Add `dashed` inside a resource block:
+Add `line: dashed` inside a resource block:
 
 ```text
 service platform "Platform" {
-  dashed
+  line: dashed
   service api "API"
 }
 ```

@@ -10,7 +10,7 @@ import { parseStrata } from '../src/language.js';
 
 const entry=fileURLToPath(new URL('strata.mjs',import.meta.url));
 const root=new URL('../',import.meta.url);
-const source='diagram "CLI example"\nservice api "API"\ndatabase db "DB"\napi -> db : "Read"\nview overview "Overview" {\n include api, db\n}\nview storage "Storage" {\n include db\n}\n';
+const source="diagram \"CLI example\"\nservice api \"API\"\ndatabase db \"DB\"\napi -> db \"Read\"\nview overview \"Overview\" {\n include: [api, db]\n}\nview storage \"Storage\" {\n include: [db]\n}\n";
 const run=(cwd,args,input,cli=entry)=>spawnSync(process.execPath,[cli,...args],{cwd,input,encoding:'utf8',timeout:15000});
 const bootstrap=html=>JSON.parse(html.match(/<script id="strata-bootstrap" type="application\/json">([\s\S]*?)<\/script>/)[1]);
 
@@ -93,14 +93,14 @@ test('embeds bundled icons and builds without a dist directory or prior build',a
   await mkdir(join(cwd,'icons','svgs','solid'),{recursive:true});
   const svg=await readFile(new URL('icons/svgs/solid/server.svg',root),'utf8');
   await writeFile(join(cwd,'icons','svgs','solid','server.svg'),svg);
-  const input='service api "API" {\n icon "svgs/solid/server.svg"\n}';
+  const input="service api \"API\" {\n icon: \"svgs/solid/server.svg\"\n}";
   const args=['build','-','-o','bundled.html'];
   const result=run(cwd,args,input,join(cwd,'cli','strata.mjs'));
   assert.equal(result.status,0,result.stderr);
   const saved=bootstrap(await readFile(join(cwd,'bundled.html'),'utf8'));
   assert.equal(saved.icons['svgs/solid/server.svg'],'data:image/svg+xml;base64,'+Buffer.from(svg).toString('base64'));
   for (const command of ['verify','build']) {
-    const missing=run(cwd,[command,'-'],'service api "API" {\n icon "missing.svg"\n}');
+    const missing=run(cwd,[command,'-'],"service api \"API\" {\n icon: \"missing.svg\"\n}");
     assert.equal(missing.status,1);
     assert.match(missing.stderr,/Cannot read icon: missing.svg/);
   }

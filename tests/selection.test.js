@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { DiagramLayout, selectionFocus, StrataDiagram } from '../src/framework.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { parseStrata } from '../src/language.js';
-const model = parseStrata('app web "Web"\nservice platform "Platform" {\n service api "API"\n database db "Database"\n service worker "Worker"\n service isolated "Isolated"\n}\nweb -> api : "request"\napi -> db : "SQL"\nworker -> db : "maintenance"\nview all "All" {\n include web, platform\n}\nview scoped "Scoped" {\n relations only\n api -> db : "local SQL"\n}');
+const model = parseStrata("app web \"Web\"\nservice platform \"Platform\" {\n service api \"API\"\n database db \"Database\"\n service worker \"Worker\"\n service isolated \"Isolated\"\n}\nweb -> api \"request\"\napi -> db \"SQL\"\nworker -> db \"maintenance\"\nview all \"All\" {\n include: [web, platform]\n}\nview scoped \"Scoped\" {\n relations: local\n api -> db \"local SQL\"\n}");
 const layout = new DiagramLayout(model).create('all');
 const names = values => [...values].sort();
 const labels = focus => [...focus.edges].map(e => e.label).sort();
@@ -78,12 +78,12 @@ app parent "Parent" {
 app neighbor "Neighbor" {
  service other "Other"
 }
-outside -> parent : "incoming"
-parent -> neighbor : "outgoing"
-outside -> child : "child connection"
-child -> other : "child to child"
+outside -> parent "incoming"
+parent -> neighbor "outgoing"
+outside -> child "child connection"
+child -> other "child to child"
 view all "All" {
- include outside, parent, neighbor
+ include: [outside, parent, neighbor]
 }`);
   const scene = new DiagramLayout(connected).create('all');
   const focus = selectionFocus(scene,'parent',connected.resources);

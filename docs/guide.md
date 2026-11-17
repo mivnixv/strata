@@ -1,557 +1,267 @@
 # Strata guide
 
-Create interactive architecture diagrams from text. The browser canvas provides
-navigation and selection; the source defines resources, relationships, views,
-and notes. No runtime dependencies are required.
-
-## Contents
-
-1. [Get started](#get-started)
-2. [Language basics](#language-basics)
-3. [Items and containers](#items-and-containers)
-4. [Connections and perspectives](#connections-and-perspectives)
-5. [Numbered notes](#numbered-notes)
-6. [Layout and detail](#layout-and-detail)
-7. [Editor and navigation](#editor-and-navigation)
-8. [Save and export](#save-and-export)
-9. [Built-in example](#built-in-example)
-10. [Embed the framework](#embed-the-framework)
-11. [Limits and development](#limits-and-development)
+Create interactive architecture diagrams from text. Source defines items,
+connections, perspectives, styles, and numbered notes. The browser provides
+navigation, zoom, selection, and export. No runtime dependencies are required.
 
 ## Get started
 
-Requires Node.js 20.11 or newer. From the repository root:
-
-```sh
-npm run dev
-```
-
-Open [the local editor](http://127.0.0.1:4173). This command also builds the offline
-HTML template; no dependency installation is needed.
-
-Paste the following into the editor or save it as `architecture.strata` and import it:
+Requires Node.js 20.11+. Run `npm run dev`, then open
+[the local editor](http://127.0.0.1:4173).
 
 ```text
 diagram "My system"
 
 app web "Web application"
-service platform "Application platform" {
-  subheader "Core application boundary"
-  dashed
+group backend "Backend" {
+  subheader: "Core application boundary"
+  line: dashed
   service api "API" {
-    subheader "Validates incoming requests"
-    noLargeIcon
-    note 1 "Preserve request IDs across retries." position top-right
+    large-icon: false
+    note 1 "Preserve request IDs." { position: top-right }
   }
-  database db "PostgreSQL" {
-    icon "brands/brands_p/postgresql_icon.svg"
-  }
+  database db "PostgreSQL" { icon: "brands/brands_p/postgresql_icon.svg" }
 }
 
-web -> api : "HTTPS"
-api -> db : "Query" note 2 "Uses a read replica." connect : "Read path" dashed
-
-view overview "System overview" {
-  include web, platform
+web -> api "HTTPS"
+api -> db "Query" {
+  start { shape: dot; label: "Caller" }
+  end { shape: arrow; label: "Store" }
+  note 2 "Uses a read replica." { connector { label: "Read path"; line: dashed } }
 }
+
+view overview "System overview" { include: [web, backend] }
 ```
 
 ## Language basics
 
-| Element | Rule |
+Declarations use concise headers; properties always use `key: value`. Related
+properties use named blocks such as `layout`, `start`, `end`, and `connector`.
+
+- Separate properties and leaf declarations with newlines or semicolons.
+- Blocks can be inline or multiline; indentation is for readability.
+- Use double-quoted strings with JSON escapes, explicit booleans, and bare enums.
+- Lists use `[a, b]`, support multiple lines, and allow a trailing comma.
+- `#` starts a comment outside strings.
+- IDs start with a letter or underscore, followed by letters, digits, `_`, `.`,
+  or `-`. Item IDs are global, even when nested.
+- Item and type references can precede their declarations.
+- Unknown, duplicate, and wrong-scope properties are errors. Syntax errors
+  identify the line and column.
+
+See [the complete grammar and defaults](../src/dsl/README.md).
+
+## Items, containers, and custom types
+
+Built-in types are `app`, `service`, `database`, `infrastructure`, `external`, and
+`group`. Any item becomes a container when it has children. `group` represents
+an organizational boundary with no specific architectural role; empty groups
+are valid. Types affect default styling, not diagram behavior.
+
+```text
+type queue {
+  color: "#e6b86a"
+  background: "#182333"
+  icon: "svgs/solid/server.svg"
+  line: dashed
+  large-icon: false
+  subheader: "Async work"
+}
+queue jobs "Jobs"
+queue events "Events" {
+  line: solid
+  large-icon: true
+  icon: null
+  subheader: ""
+}
+```
+
+The same style properties work on built-in type declarations and individual
+items. Item properties override type defaults. Formatting preserves inheritance;
+changing the type still updates items without explicit overrides. Defaults apply
+to an item's own type, not to its descendants.
+
+| Property | Behavior |
 | --- | --- |
-| Statements | One statement per line; closing braces occupy their own line. |
-| Hierarchy | Braces define nesting. Indentation is for readability. |
-| Item declaration | `TYPE ID "Display name"`, optionally followed by `{`. |
-| Types | `app`, `service`, `database`, `infrastructure`, `external`, `group`. |
-| IDs | Start with a letter or underscore; then letters, digits, `_`, `.`, or `-`. Resource IDs are unique; view IDs are unique within views. |
-| Strings | Double-quoted, with JSON escapes such as `\"` and `\n`. |
-| Comments | `#` outside a quoted string starts a comment. |
-| References | Connections may reference items declared later. |
+| `color` | Border, accent, neutral-icon tint, and selected connection colors; quoted six-digit hex. |
+| `background` | Item/container fill; quoted six-digit hex. |
+| `icon` | Bundled icon path relative to `icons/`; `null` clears inheritance. |
+| `large-icon` | Boolean; `false` hides the decorative icon, keeping the header icon. |
+| `line` | `solid` or `dashed` item border. |
+| `subheader` | Secondary text; empty string clears inheritance. |
+| `description` | Longer explanation shown when the Description control is enabled. Item-only. |
 
-Inline blocks and semicolons are unsupported. Without explicit views, Strata
-creates a system overview automatically.
+There are seven themes. Custom types without a color use the theme's muted
+color. Colored icons retain their colors; neutral icons use the item accent.
+Offline exports embed referenced icons, including inherited icons. Missing files
+prevent incomplete exports. See [custom types](../src/items/types/README.md).
 
-## Items and containers
-
-An item becomes a container when other items are nested inside its block.
-Resource types determine icons and colors; cards do not display automatic type
-names.
-
-Use `group` for a generic container with no specific architectural role:
+## Connections and endpoints
 
 ```text
-group backend "Backend" {
-  service api "API"
-  database db "Database"
+api -> jobs "Publish" {
+  line: dashed
+  start { shape: dot; label: "Producer" }
+  end { shape: circle; label: "Inbox" }
 }
 ```
 
-Groups use the same options, connections, nesting, and collapse behavior as other
-items. Empty groups are allowed and render as ordinary items until they have children.
+The middle label is optional. It can appear after the target ID or as `label:`
+inside the block. Start/end labels are independent. All labels follow the Labels
+control; symbols remain visible when labels are hidden.
 
-### Item options
+Endpoint shapes are `dot` (filled circle), `circle` (hollow), `arrow`, `asterisk`,
+`square`, and `none`. Defaults are no start symbol and an end arrow. Endpoint
+labels shrink or truncate to fit and can be omitted when no clear space exists.
+Symbols stay solid on dashed connections. Different endpoint meanings remain
+separate during deduplication and collapse. See
+[connection endpoints](../src/connections/endpoints/README.md).
 
-| Option | Example | Behavior |
-| --- | --- | --- |
-| Subheader | `subheader "Request entry point"` | Optional text below the title; at most 500 characters. |
-| Description | `description "Longer explanation"` | Details shown when selecting an item with **Description** enabled; at most 5,000 characters. |
-| Icon | `icon "svgs/solid/server.svg"` | Replaces the header glyph and any large decorative icon. |
-| Hide large icon | `noLargeIcon` | Suppresses the large decorative icon; keeps the small header icon. |
-| Dashed border | `dashed` | Uses a dashed item/container border; solid is the default. |
-| Note | `note 1 "Details"` | Attaches a numbered note to this item. |
-| Layout | `sizes proportional`, `compactness 0.8` | Controls layout of this container's children. |
+Connections outside views are global, including connections nested in item
+blocks. IDs are always global; nesting does not introduce relative references.
+Canonical formatting moves global connections after item declarations.
 
-Options apply to their item, including its collapsed form. They do not
-automatically apply to descendants.
-
-### Subheaders
-
-Subheaders render on leaf items and expanded/collapsed groups. They shrink or
-truncate to fit. Omission or an empty string shows no secondary text on a leaf
-or expanded group. A collapsed group without a custom subheader retains its
-component-count summary. A custom subheader replaces that summary.
-
-See [item subheaders](../src/items/subheader/README.md).
-
-### Icons
-
-Icon paths are relative to the bundled `icons/` directory; omit the `icons/`
-prefix. A large decorative icon appears only when a leaf or collapsed group has
-enough space. Expanded containers show only the small header icon.
+## Views
 
 ```text
-service api "API" {
-  icon "svgs/solid/server.svg"
-  noLargeIcon
-}
-```
-
-`noLargeIcon` suppresses both custom and generated large icons without changing
-card size or layout. Offline HTML embeds referenced icons; offline edits can
-reuse those icon IDs. Missing icon files prevent incomplete exports.
-
-See [large icon visibility](../src/items/no-large-icon/README.md).
-
-## Connections and perspectives
-
-### Connections
-
-```text
-service api "API"
-infrastructure queue "Queue"
-
-api -> queue : "Publish event" dashed
-queue -> api
-```
-
-Labels are optional. Append `dashed` after the optional label; otherwise the
-connection is solid. This option is independent of an item's border style.
-Connections may also carry [notes](#numbered-notes).
-
-Duplicate connections with the same `(from, to, label, dashed)` are drawn once,
-merging their notes. Different labels or stroke styles remain distinct.
-
-See [dashed connections](../src/connections/dashed/README.md) and
-[dashed borders](../src/containers/dashed/README.md).
-
-### Perspectives
-
-Connections outside views are global. A view inherits applicable global
-connections by default and can add local ones:
-
-```text
-app web "Web"
-service api "API"
-database db "Database"
-api -> db : "SQL"
-
 view checkout "Checkout" {
-  description "Customer request flow"
-  include web, api, db
-  web -> api : "Place order"
-}
-
-view audit "Audit only" {
-  relations only
-  api -> db : "Write audit record"
+  description: "Only checkout dependencies."
+  include: [web, backend]
+  relations: local
+  api -> db "Read"
+  detail: 0.8
+  layout { sizes: proportional; compactness: 0.7 }
 }
 ```
 
-| View directive | Behavior |
-| --- | --- |
-| `include api, db` | Selects items explicitly; including a container includes its descendants. |
-| Omitted `include` | Local connection endpoints and item note targets determine membership; if neither exists, inherited globals determine it. |
-| Empty `include` | Adds no explicit items; local endpoints still participate. |
-| `relations only` | Disables inherited global connections for this view. |
-| `description "Text"` | Stores a view explanation in the model. |
-| `note 1 "Context"` | Adds a standalone note visible only in this view. |
-
-Local endpoints and their ancestor context are always included, without
-unrelated siblings. Local relationships never appear in other views.
+- `include` selects explicit items. Selecting a container includes descendants.
+- Omit `include` to infer membership; use `include: []` for no explicit context.
+- Local connection endpoints and item-note targets are included automatically.
+- Without explicit inclusion, local connections/attached notes determine
+  membership. If neither exists, inherited connections determine membership.
+- Ancestors of visible items are included as context.
+- `relations: inherit` includes applicable global connections, plus local ones.
+- `relations: local` uses only connections declared in that view.
+- Identical global and local connections merge their notes.
+- No views means an automatic overview containing all root items.
 
 ## Numbered notes
 
-### Attachments
-
 ```text
-note 1 "General architecture context"
+note 1 "General explanation"
 service api "API" {
-  note 2 "Item attachment with a mark, without a connector"
-  note 3 "Another item note" position right fontSize 18 connect : "Details" dashed
+  note 2 "Keep request IDs." {
+    position: top-right
+    font-size: 18
+    connector { label: "Retry contract"; line: dashed }
+  }
 }
-database db "Database"
-api -> db : "Query" note 4 "Connection attachment" connect solid
-
-view operations "Operations" {
-  include api, db
-  note 5 "Standalone note for this view only"
-}
-```
-
-| Declaration location | Attachment |
-| --- | --- |
-| Top level | Standalone note, visible across views; no mark. |
-| Inside an item/container block | Item note with a numbered mark. |
-| After a connection | Connection note with a mark near the route. |
-| Inside a view | Note scoped to that view; append `on api` to attach it to an existing item. |
-
-Numbers must be positive safe integers, unique across the entire diagram.
-Multiple notes may follow a connection. Text must be nonempty, at most 5,000
-characters; `\n` inserts a line break.
-
-### Keep global notes and add view-only detail
-
-```text
-note 1 "Global context"
-service api "API" {
-  note 2 "Global item explanation"
+service db "Database"
+api -> db "Query" {
+  note 3 "Read-only." { connector {} }
 }
 view checkout "Checkout" {
-  note 3 "Checkout-only detail" on api position right connect dashed
-  note 4 "Checkout-only context"
-}
-view operations "Operations" {
-  include api
+  include: [api, db]
+  note 4 "Checkout-only detail." { on: api; position: left }
 }
 ```
 
-Checkout shows notes 1–4. Operations keeps global notes 1–2. A view note with
-`on api` includes API and its ancestor context automatically. When `include` is
-omitted, local connection endpoints and note targets determine membership;
-views with neither infer it from globals. An identical global connection can be
-redeclared inside a view with additional notes; both sets of notes are retained.
+Document-level unattached notes appear across views. Item and connection notes
+attach to their declaration's target. View notes appear only in that view;
+`on: ID` attaches a document/view note to an existing item. This adds to global
+item notes rather than replacing them. Note numbers are positive safe integers
+and unique across the diagram.
 
-### Note options
+| Property / block | Behavior |
+| --- | --- |
+| `on` | Item ID; available only on document/view notes. |
+| `position` | Item mark location: `top-left`, `top`, `top-right`, `right`, `bottom-right`, `bottom`, `bottom-left`, `left`. |
+| `font-size` | Positive finite size, including decimals; default 14. |
+| `connector` | Optional item/connection annotation line. Empty block enables a solid, unlabeled line. |
+| Connector `label` | Optional quoted label. |
+| Connector `line` | `solid` or `dashed`; default `solid`. |
 
-| Option | Default | Applies to |
-| --- | --- | --- |
-| `on api` | No item target | Model/view-level notes; view targets are included automatically. |
-| `fontSize 18.5` | `14` SVG pixels | All note bodies; any positive finite number. |
-| `position top-right` | `top-left` | Item/container marks only. |
-| `connect` | No connector | Item and connection notes with a mark. |
-| `connect : "Label" dashed` | Solid line, empty label when omitted | Optional block-to-mark connector. |
+Unattached notes cannot have connectors or mark positions. Connection marks
+cannot use item positions. Marks stack along the chosen edge; note blocks wrap
+at eight columns. Collapsed groups collect visible descendant item marks; internal
+connection notes disappear with their connections.
 
-`on`, `fontSize`, `position`, and `connect` may appear in any order. Append `solid` or
-`dashed` immediately after the optional connector label. Omitting `connect`
-shows just the note and its mark. Standalone notes cannot have connectors or
-item mark positions.
-
-### Mark positions
-
-Supported positions: `top-left`, `top`, `top-right`, `right`, `bottom-right`,
-`bottom`, `bottom-left`, and `left`.
-
-Marks sit just outside the selected corner or side. Multiple marks stack along
-that edge, then outward. Collapsed descendant notes use their chosen position on
-the visible collapsed owner. Annotation connectors follow the actual mark.
-
-### Notebook layout and visibility
-
-- Notes appear in number order as compact ruled blocks in eight equal columns.
-- Rows wrap after eight notes; partially filled rows do not stretch their blocks.
-- Font size controls text wrapping, line spacing, and block height. Marks and
-  connector labels retain their own sizes.
-- Blocks, marks, and connectors start at 25% opacity.
-- Selecting an item reveals its related blocks/marks; related connectors use
-  50% opacity. Unrelated notes remain dimmed. Colors do not change.
-- Clicking a mark or block focuses only that note and its item or connection.
-  Connection endpoints stay visible; other notes on the same item also dim.
-- **Show notes** toggles blocks, marks, and annotation connectors together.
-- Notes follow view membership. Collapsed items collect descendant marks;
-  bundled connections retain their notes. Hidden internal connections hide
-  their notes until expanded.
-
-Blocks, marks, and connectors fade with the diagram. Enter/Space activates a
-focused mark or block; Escape or empty canvas clears note focus.
-
-See the [complete note reference](../src/notes/README.md).
+Notes start dimmed. Select an item to reveal related notes or select a mark/block
+to focus one explanation. Enter/Space activates notes; Escape clears selection.
+Show notes toggles marks, blocks, and connectors. See [notes](../src/notes/README.md).
 
 ## Layout and detail
 
-| Setting | Values | Scope |
-| --- | --- | --- |
-| `sizes` | `auto` (default), `uniform`, `proportional` | Resource or view. |
-| `compactness` | `0.1`–`1`, default `0.6` | Resource or view; larger values narrow gaps. |
-| `detail` | `0`–`1`, default `1` | Initial value inside a view. |
-
-`uniform` equalizes sibling minimum dimensions and weights. `proportional` gives
-more space to more-connected resources. `auto` chooses uniform for equal
-connection counts and proportional otherwise. Readable minimum sizes still apply.
-
 ```text
-service backend "Backend" {
-  sizes proportional
-  compactness 0.8
+group backend "Backend" {
+  layout { sizes: uniform; compactness: 0.8 }
   service api "API"
-  service worker "Worker"
+  database db "Database"
 }
 view overview "Overview" {
-  include backend
-  sizes auto
-  compactness 0.6
-  detail 0.75
+  include: [backend]
+  detail: 0.7
+  layout { sizes: proportional; compactness: 0.6 }
 }
 ```
 
-Each container is laid out independently. Connected children use dependency
-columns; first appearance in the connection list determines peer order.
-Unconnected items use stable compact packing. Cycles are broken deterministically
-for placement without reversing relationships.
+`layout` works on items and views. Item settings control their children; view
+settings control the view. `sizes` is `auto`, `uniform`, or `proportional`.
+`compactness` ranges from 0.1 to 1; larger values reduce gaps. Defaults are
+`auto` and 0.6. View `detail` ranges from 0 to 1 and defaults to 1. Available
+viewport size and zoom also affect adaptive collapse. Manual collapses persist
+across zoom changes.
 
-Detail uses viewport width and zoom to compare children against a pixel budget.
-`0` rolls groups up; `1` shows all non-manually-collapsed children. Measurements
-use a stable full-detail baseline to avoid layout oscillation. Manual collapses
-persist across zoom; expanding a rolled-up group returns to full detail.
+Dense graphs can require shared routes and crossings. Labels can truncate or
+hide; tooltips retain full endpoint labels. Routing is deterministic, not planar
+or optimal in every case.
 
-## Editor and navigation
+## Editor, save, and export
 
-### Editing
+- Source edits update the preview after a short debounce. Invalid source leaves
+  the last valid preview visible.
+- Format produces canonical multiline source and discards comments.
+- Perspective, Resource, Theme, Detail, zoom, and collapse controls affect the
+  preview. Description opens an item's explanation.
+- Click an item to reveal direct connections; double-click to collapse/expand.
+  Hover reveals direct connections when nothing is selected.
+- Source exports `.strata`; Import accepts `.strata` or the existing JSON model.
+- SVG exports the current view. Offline HTML embeds the complete model, source,
+  renderer, styles, and referenced icons without external assets.
+- Source is saved locally under this grammar's storage key. Older saved DSL is
+  retained under its previous key and is not loaded or migrated automatically.
 
-| Control | Behavior |
-| --- | --- |
-| Source editor | Updates the preview after 300 ms; invalid input retains the last valid preview. |
-| Ctrl/Cmd+Enter | Applies source immediately. |
-| Tab | Inserts two spaces in the editor. |
-| Format | Canonicalizes valid source and removes comments. |
-| Import | Accepts `.strata`, `.txt`, or compatible JSON. |
-| New | Downloads the previous source before loading a starter. |
+The DSL has changed intentionally; old syntax is unsupported. JSON field names
+remain unchanged. See [the DSL mapping](../src/dsl/README.md#formatting-and-json).
 
-### Canvas controls
+## Built-in and workflow examples
 
-| Action | Behavior |
-| --- | --- |
-| Select an item | Reveals its direct connections, endpoints, and related notes; dims unrelated content. |
-| Select a group | Keeps its visible descendants readable; reveals only the group's own direct connections. |
-| Click a note/mark | Focuses that specific note and attachment. |
-| Double-click a group / Space on a focused group | Collapses or expands it. |
-| Wheel/trackpad over the canvas | Zooms around the pointer, within 40–300%. |
-| **Description** | Shows the selected item's description. Closing the popup dismisses it without clearing selection. |
-| Empty canvas / Escape | Clears selection. |
+The [commerce example](../src/example.strata) follows checkout through delivery
+and returns, with focused views and 14 notes. Compare Order lifecycle with Browse
+& checkout to see view-specific detail. The [workflow examples](../examples/)
+cover subscriptions, data pipelines, and release delivery. All use the new grammar.
 
-Selection does not change view membership or expand collapsed groups. View,
-zoom, detail, selection, and collapse state do not modify source.
+`npm run build` validates source and regenerates ignored `dist/example.js` and
+`dist/standalone.html`. Do not hand-edit generated files.
 
-### Connection visibility and collapse
+## Embed and develop
 
-Uncovered connections stay visible. Covered crossings/overlapping routes dim to
-10% opacity, with bright ends fading into the body. Without selection, hovering
-an item reveals its direct connections. Item/note focus takes precedence over
-hover, including for items without connections.
+Import `parseStrata` and `formatStrata` from `src/language.js`; import
+`StrataDiagram`, `DiagramLayout`, and `validateModel` from `src/framework.js`.
+The embedding application owns navigation state and re-renders through injected
+selection/collapse callbacks. `diagram.exportSvg()` settles motion before export;
+`{animate:false}` disables SVG motion. Source is never evaluated as code.
 
-Collapsed groups bundle external relationships into separate incoming/outgoing
-trunks per side, branching toward external items. Parallel bundled relationships
-show a count; tooltips retain their original labels. Internal connections hide
-until expansion. Solid and dashed bundles remain distinct.
-
-### Animations
-
-Resources move and resize during view/detail/collapse changes. Selection opacity
-changes ease smoothly; note geometry changes crossfade. New input interrupts the
-current animation rather than queuing transitions.
-
-Animations respect `prefers-reduced-motion`, including changes during playback.
-Exports settle active animations before serialization.
-
-## Save and export
-
-### Browser source and SVG
-
-The last valid server-mode source is saved in this browser's local storage.
-Storage is not shared or synchronized. Export `.strata` for backups or Git.
-SVG export captures the current view, collapse state, and note visibility.
-
-### CLI
-
-```sh
-node cli/strata.mjs verify architecture.strata
-node cli/strata.mjs build architecture.strata -o architecture.html
-node cli/strata.mjs build architecture.strata --view overview -o overview.html
-```
-
-No prior build is needed. Existing output files are never overwritten. See
-[CLI options](../cli/README.md) for JSON, stdin, and bundled icons.
-
-### Offline HTML
-
-Build the bundled distribution with `npm run build`, then open
-`dist/standalone.html` directly in a browser. Export **Offline HTML** from the
-server editor to create a self-contained file with your source, icons, all
-resources/views, and presentation settings.
-
-Offline HTML starts as a full-window viewer without the source sidebar, with
-perspective selection in the toolbar. It needs no server, internet connection,
-or adjacent files. Embedded source takes precedence over browser storage.
-Re-export the HTML to keep in-memory changes; the browser does not overwrite the
-original file automatically. Resources hidden by the active view are still
-included in the exported source.
-
-### JSON field reference
-
-JSON imports use `resources`, `relations`, and `perspectives` arrays, plus a
-`title`. Optional fields correspond to source options:
-
-| Model location | Fields |
-| --- | --- |
-| Resource | `subheader`, `description`, `icon`, `noLargeIcon`, `dashed`, `sizes`, `compactness`, `notes`. |
-| Relation | `from`, `to`, `label`, `dashed`, `notes`. |
-| Perspective | `resources`, `relations`, `inheritGlobalRelations`, `description`, `sizes`, `compactness`, `detail`, `notes`. |
-| Model | `notes` for global standalone notes. |
-| Note | `number`, `text`, `resource` (model/view-level item attachment), `fontSize`, `position` (item notes), `connector`. |
-
-A note connector is `{"label": "Details", "dashed": true}`; omission or `null`
-disables it. Boolean style options accept `true` or `false`. A perspective can
-omit `resources` or use `null` to infer membership; setting
-`inheritGlobalRelations: false` corresponds to `relations only`.
-
-## Built-in example
-
-[`src/example.strata`](../src/example.strata) is the authoritative source for the
-illustrative retail order journey. It includes checkout, fulfillment/delivery,
-returns/refunds, recovery, infrastructure, and overview perspectives, plus 14
-notes demonstrating attachment types, view scope, mark positions, font sizes,
-and optional annotation connectors.
-
-The example reuses API gateway, PostgreSQL, Redis, and queue infrastructure.
-Service boxes represent logical business responsibilities. It is an illustrative
-design, not a reconstruction of Amazon's internal architecture. Physical
-operations draw on Amazon's public [package journey](https://www.aboutamazon.com/news/operations/how-do-amazon-packages-get-delivered)
-and [fulfillment overview](https://sell.amazon.com/fulfillment-by-amazon).
-Payment capture at dispatch is a scenario assumption.
-
-### Compare note scope in the example
-
-| Notes | Scope | Where to compare |
-| --- | --- | --- |
-| 1 | Global standalone context | Every view. |
-| 3–4 | Global notes attached to Place & confirm order | Order lifecycle and Browse & checkout both retain them. |
-| 7 | Global payment authorization connection note | Both views retain it on the payment-provider connection. |
-| 9 | Item note declared inside Order lifecycle | Only Order lifecycle; attaches to the order item with `on orders`. |
-| 13 | Item note declared inside Browse & checkout | Only Browse & checkout; adds detail alongside global notes 3–4. |
-| 14 | Local note on the matching global payment connection | Only Browse & checkout; the single connection keeps notes 7 and 14. |
-
-Switch between **Order lifecycle** and **Browse & checkout** with **Show notes**
-enabled. Select the order item to reveal its applicable notes, or click an
-individual mark to focus that specific explanation.
-
-`npm run build` validates the source and generates `dist/example.js` and
-`dist/standalone.html`. Existing browser-saved source remains intact; import the
-example file to load the new sample. Do not hand-edit generated JavaScript.
-
-## Embed the framework
-
-Serve the `src` modules from a static HTTP server:
-
-```html
-<div id="architecture"></div>
-<script type="module">
-  import { parseStrata } from './language.js';
-  import { StrataDiagram } from './framework.js';
-
-  const model = parseStrata(`
-    service api "API" {
-      subheader "Handles requests"
-      note 1 "Request validation"
-    }
-  `);
-  const state = { selected: null, selectedNote: null, collapsed: new Set() };
-  const diagram = new StrataDiagram(document.getElementById('architecture'), {
-    onSelect(id) {
-      state.selected = id; state.selectedNote = null; render();
-    },
-    onSelectNote(number) {
-      state.selected = null; state.selectedNote = number; render();
-    },
-    onCollapse(id, isCollapsed) {
-      if (isCollapsed) { state.collapsed.delete(id); }
-      else { state.collapsed.add(id); }
-      render();
-    }
-  });
-  function render() {
-    diagram.render(model, { ...state, perspective: 'all', showNotes: true });
-  }
-  render();
-</script>
-```
-
-| API | Purpose |
-| --- | --- |
-| `parseStrata(source)` | Parses source into a validated model. |
-| `formatStrata(model)` | Produces canonical source. |
-| `validateModel(input)` | Validates external JSON. |
-| `DiagramLayout(model).create(viewId, collapsed)` | Computes nodes, edges, and visible notes without rendering. |
-| `diagram.finishAnimations()` | Settles active SVG motion. |
-| `diagram.exportSvg()` | Settles motion and returns SVG markup. |
-
-The embedding application owns navigation state and re-renders from injected
-callbacks. `{ animate: false }` disables SVG motion; a `DiagramMotion` instance
-can be injected. DOM output uses text nodes; source is never evaluated as code.
-
-## Limits and development
-
-### Model limits
-
-| Resource | Limit |
+| Limit | Value |
 | --- | --- |
 | Source | 1 MB |
-| Items | 300 |
-| Global and view-local relationship declarations combined | 1,000 |
-| Perspectives | 30 |
-| Hierarchy depth | 12 levels |
-| Notes | 1,000 |
-| Note text | 1–5,000 characters |
+| Items / total connections / views | 300 / 1,000 / 30 |
+| Item nesting | 12 parent levels |
+| Type declarations / type name length | 100 / 100 characters |
+| Notes / note text | 1,000 / 1–5,000 characters |
 | Subheaders / connection and annotation labels | 500 characters |
 
-Routing avoids item interiors and group headers where possible, penalizes shared
-segments, and uses underlays to separate crossings. Dense graphs and cycles may
-still need crossings or shared channels; planar or optimal routing is not
-guaranteed. Labels truncate or hide when space is insufficient; route tooltips
-retain original relationship labels. Large diagrams may require zoom or collapse.
-
-### Development commands
-
-```sh
-npm run check
-npm test
-npm run build
-npm run build:pages
-```
-
-Generated artifacts live in ignored `dist/`. Tests/builds regenerate the example
-and offline HTML. For hosting, see [GitHub Pages setup](../publishing/README.md).
-
-### Source map
-
-| Path | Responsibility |
-| --- | --- |
-| `src/language.js` | Tokenizer, parser, canonical formatter. |
-| `src/framework.js` | Model validation, layout integration, SVG rendering. |
-| `src/tiling/` | Measurement, allocation, packing, semantic detail. |
-| `src/routing.js` | Connection ports, paths, and label placement. |
-| `src/notes/` | Note validation, marks, blocks, connectors, focus, and tests. |
-| `src/items/` | Subheaders and large-icon visibility. |
-| `src/motion.js` | Interruptible transitions and animation clock. |
-| `src/app.js` | Editor, browser persistence, navigation, exports. |
-| `standalone/` | Offline HTML generation and source embedding. |
-| `tests/` | Shared language, model, layout, and browser-support behavior checks. |
+Run `npm run check`, `npm test`, `npm run build`, and `npm run build:pages`.
+The lexer, parser, formatter, grammar reference, and grammar tests live together
+in `src/dsl/`; `src/language.js` is the public integration point. Existing model,
+rendering, routing, and note features remain in their feature folders.

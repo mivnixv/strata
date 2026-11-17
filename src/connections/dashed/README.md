@@ -1,15 +1,19 @@
 # Dashed connections
 
-Append `dashed` to a relationship, after its optional label:
+Set `line: dashed` inside a connection block:
 
 ```text
 service api "API"
 infrastructure queue "Queue"
 service worker "Worker"
 
-api -> queue : "Publish event" dashed
-queue -> worker dashed
-worker -> api : "Synchronous request"
+api -> queue "Publish event" {
+  line: dashed
+}
+queue -> worker {
+  line: dashed
+}
+worker -> api "Synchronous request"
 ```
 
 The default is solid. The option works for global and view-local relationships.

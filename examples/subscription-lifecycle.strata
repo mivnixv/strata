@@ -3,173 +3,173 @@
 diagram "Subscription lifecycle"
 
 app channels "Customer and operations" {
-  icon "svgs/solid/user.svg"
+  icon: "svgs/solid/user.svg"
   app portal "Customer portal" {
-    icon "svgs/solid/globe.svg"
+    icon: "svgs/solid/globe.svg"
   }
   app console "Operations console" {
-    icon "svgs/solid/clipboard_check.svg"
+    icon: "svgs/solid/clipboard_check.svg"
   }
 }
 
 service platform "Subscription platform" {
-  icon "svgs/solid/server.svg"
+  icon: "svgs/solid/server.svg"
   service signup "Enrollment" {
-    icon "svgs/solid/file_alt.svg"
+    icon: "svgs/solid/file_alt.svg"
     service eligibility "Validate plan and account" {
-      icon "svgs/solid/shield_alt.svg"
+      icon: "svgs/solid/shield_alt.svg"
     }
     service checkout "Accept subscription" {
-      icon "svgs/solid/credit_card.svg"
-      description "Uses a request key to deduplicate checkout. Persists pending subscription and an outbox entry in one transaction."
+      icon: "svgs/solid/credit_card.svg"
+      description: "Uses a request key to deduplicate checkout. Persists pending subscription and an outbox entry in one transaction."
     }
     service billing "Collect payment" {
-      icon "svgs/solid/credit_card.svg"
-      description "Payment calls use a stable operation key. Provider callbacks may be repeated or arrive before the synchronous response."
+      icon: "svgs/solid/credit_card.svg"
+      description: "Payment calls use a stable operation key. Provider callbacks may be repeated or arrive before the synchronous response."
     }
     service callbacks "Reconcile payment events" {
-      icon "svgs/solid/exchange_alt.svg"
-      description "Verifies callback signatures, deduplicates provider event IDs, and advances only valid payment states."
+      icon: "svgs/solid/exchange_alt.svg"
+      description: "Verifies callback signatures, deduplicates provider event IDs, and advances only valid payment states."
     }
   }
   service lifecycle "Lifecycle workers" {
-    icon "svgs/solid/cogs.svg"
+    icon: "svgs/solid/cogs.svg"
     service activation "Activate subscription" {
-      icon "svgs/solid/check_circle.svg"
-      description "Requires confirmed payment. Stores provisioning intent before invoking the tenant provisioner."
+      icon: "svgs/solid/check_circle.svg"
+      description: "Requires confirmed payment. Stores provisioning intent before invoking the tenant provisioner."
     }
     service provisioner "Provision tenant" {
-      icon "svgs/solid/cloud.svg"
-      description "Tenant ID is the provisioning key. Repeated commands return the existing tenant rather than creating another."
+      icon: "svgs/solid/cloud.svg"
+      description: "Tenant ID is the provisioning key. Repeated commands return the existing tenant rather than creating another."
     }
     service access "Grant or revoke access" {
-      icon "svgs/solid/lock.svg"
-      description "Entitlements become active only after provisioning succeeds. Cancellation revokes access at the recorded effective time."
+      icon: "svgs/solid/lock.svg"
+      description: "Entitlements become active only after provisioning succeeds. Cancellation revokes access at the recorded effective time."
     }
     service renewal "Renew subscription" {
-      icon "svgs/solid/clock.svg"
-      description "Creates one invoice per subscription and billing period. A lease prevents simultaneous renewal workers claiming the same period."
+      icon: "svgs/solid/clock.svg"
+      description: "Creates one invoice per subscription and billing period. A lease prevents simultaneous renewal workers claiming the same period."
     }
     service dunning "Recover failed renewal" {
-      icon "svgs/solid/exclamation_triangle.svg"
-      description "Retries collection at most three times within a seven-day grace period; exhausted attempts lead to suspension and review."
+      icon: "svgs/solid/exclamation_triangle.svg"
+      description: "Retries collection at most three times within a seven-day grace period; exhausted attempts lead to suspension and review."
     }
     service cancellation "Schedule cancellation" {
-      icon "svgs/solid/file_alt.svg"
-      description "Records an effective cancellation time. Conflicting renewal and cancellation commands serialize on the subscription version."
+      icon: "svgs/solid/file_alt.svg"
+      description: "Records an effective cancellation time. Conflicting renewal and cancellation commands serialize on the subscription version."
     }
     service compensation "Compensate failed activation" {
-      icon "svgs/solid/exchange_alt.svg"
-      description "After a provisioning failure, revoke partial access and request one refund for the original charge; unresolved provider results require reconciliation."
+      icon: "svgs/solid/exchange_alt.svg"
+      description: "After a provisioning failure, revoke partial access and request one refund for the original charge; unresolved provider results require reconciliation."
     }
     service notifications "Send lifecycle messages" {
-      icon "svgs/solid/bell.svg"
-      description "Deduplicates by subscription, lifecycle version, and message type."
+      icon: "svgs/solid/bell.svg"
+      description: "Deduplicates by subscription, lifecycle version, and message type."
     }
   }
   service delivery "Event delivery" {
-    icon "svgs/solid/exchange_alt.svg"
+    icon: "svgs/solid/exchange_alt.svg"
     service relay "Relay committed events" {
-      icon "svgs/solid/exchange_alt.svg"
-      description "Reads committed outbox records and publishes at least once. Consumers record processed event IDs with their state updates."
+      icon: "svgs/solid/exchange_alt.svg"
+      description: "Reads committed outbox records and publishes at least once. Consumers record processed event IDs with their state updates."
     }
     infrastructure events "Lifecycle event queue" {
-      icon "svgs/solid/server.svg"
+      icon: "svgs/solid/server.svg"
     }
     service recovery "Reconcile unresolved work" {
-      icon "svgs/solid/search.svg"
-      description "Compares durable intent with provider and tenant status. Retries are bounded; ambiguous outcomes go to operations review."
+      icon: "svgs/solid/search.svg"
+      description: "Compares durable intent with provider and tenant status. Retries are bounded; ambiguous outcomes go to operations review."
     }
   }
 }
 
 database records "Durable records" {
-  icon "svgs/solid/database.svg"
+  icon: "svgs/solid/database.svg"
   database ledger "Subscriptions, invoices, and outbox" {
-    icon "svgs/solid/database.svg"
+    icon: "svgs/solid/database.svg"
   }
   database entitlements "Tenant access records" {
-    icon "svgs/solid/lock.svg"
+    icon: "svgs/solid/lock.svg"
   }
 }
 
 external partners "External systems" {
-  icon "svgs/solid/globe.svg"
+  icon: "svgs/solid/globe.svg"
   external payments "Payment provider" {
-    icon "svgs/solid/credit_card.svg"
+    icon: "svgs/solid/credit_card.svg"
   }
   external tenants "Tenant infrastructure" {
-    icon "svgs/solid/cloud.svg"
+    icon: "svgs/solid/cloud.svg"
   }
 }
 
-portal -> eligibility : "1. Select plan"
-eligibility -> checkout : "2. Eligible enrollment"
-checkout -> ledger : "3. Pending subscription + outbox"
-ledger -> relay : "4. Committed intent"
-relay -> events : "5. Publish lifecycle event"
-events -> billing : "6. Payment requested"
-billing -> payments : "7. Collect with operation key"
-payments -> callbacks : "8. Signed payment result"
-callbacks -> ledger : "9. Deduplicated payment transition"
-events -> activation : "10. Payment confirmed"
-activation -> provisioner : "11. Ensure tenant exists"
-provisioner -> tenants : "12. Provision by tenant ID"
-provisioner -> access : "13. Provisioning confirmed"
-access -> entitlements : "14. Persist access version"
-access -> notifications : "15. Activation ready"
-notifications -> portal : "16. Subscription status"
-renewal -> ledger : "Claim billing period; create invoice"
-renewal -> billing : "Collect renewal invoice"
-billing -> ledger : "Persist payment attempt"
-callbacks -> dunning : "Confirmed renewal failure"
-dunning -> billing : "Bounded retry schedule"
-dunning -> access : "Suspend after grace period"
-portal -> cancellation : "Cancel at period end"
-cancellation -> ledger : "Record effective time"
-cancellation -> access : "Revoke when cancellation becomes effective"
-cancellation -> notifications : "Cancellation scheduled"
-provisioner -> compensation : "Provisioning failed"
-compensation -> access : "Revoke partial access"
-compensation -> payments : "Refund original charge once"
-compensation -> ledger : "Persist compensation progress"
-events -> recovery : "Unresolved delivery or processing"
-recovery -> payments : "Query authoritative payment status"
-recovery -> tenants : "Inspect provisioning outcome"
-recovery -> ledger : "Reconcile durable state"
-recovery -> console : "Escalate ambiguous outcome"
-console -> recovery : "Approve audited reconciliation"
+portal -> eligibility "1. Select plan"
+eligibility -> checkout "2. Eligible enrollment"
+checkout -> ledger "3. Pending subscription + outbox"
+ledger -> relay "4. Committed intent"
+relay -> events "5. Publish lifecycle event"
+events -> billing "6. Payment requested"
+billing -> payments "7. Collect with operation key"
+payments -> callbacks "8. Signed payment result"
+callbacks -> ledger "9. Deduplicated payment transition"
+events -> activation "10. Payment confirmed"
+activation -> provisioner "11. Ensure tenant exists"
+provisioner -> tenants "12. Provision by tenant ID"
+provisioner -> access "13. Provisioning confirmed"
+access -> entitlements "14. Persist access version"
+access -> notifications "15. Activation ready"
+notifications -> portal "16. Subscription status"
+renewal -> ledger "Claim billing period; create invoice"
+renewal -> billing "Collect renewal invoice"
+billing -> ledger "Persist payment attempt"
+callbacks -> dunning "Confirmed renewal failure"
+dunning -> billing "Bounded retry schedule"
+dunning -> access "Suspend after grace period"
+portal -> cancellation "Cancel at period end"
+cancellation -> ledger "Record effective time"
+cancellation -> access "Revoke when cancellation becomes effective"
+cancellation -> notifications "Cancellation scheduled"
+provisioner -> compensation "Provisioning failed"
+compensation -> access "Revoke partial access"
+compensation -> payments "Refund original charge once"
+compensation -> ledger "Persist compensation progress"
+events -> recovery "Unresolved delivery or processing"
+recovery -> payments "Query authoritative payment status"
+recovery -> tenants "Inspect provisioning outcome"
+recovery -> ledger "Reconcile durable state"
+recovery -> console "Escalate ambiguous outcome"
+console -> recovery "Approve audited reconciliation"
 
 view enrollment "Enrollment and activation" {
-  description "Follow a subscription from plan selection through payment confirmation, tenant provisioning, and entitlement activation."
-  include portal, eligibility, checkout, ledger, relay, events, billing, payments, callbacks, activation, provisioner, tenants, access, entitlements, notifications
+  description: "Follow a subscription from plan selection through payment confirmation, tenant provisioning, and entitlement activation."
+  include: [portal, eligibility, checkout, ledger, relay, events, billing, payments, callbacks, activation, provisioner, tenants, access, entitlements, notifications]
 }
 
 view renewal "Renewal and cancellation" {
-  description "Billing periods are unique. Failed renewals have a bounded grace policy; cancellation and renewal serialize on durable subscription state."
-  relations only
-  renewal -> ledger : "Claim unique billing period"
-  renewal -> billing : "Request renewal payment"
-  billing -> payments : "Collect invoice once"
-  payments -> callbacks : "Signed renewal result"
-  callbacks -> ledger : "Record terminal or pending result"
-  callbacks -> dunning : "Confirmed failure"
-  dunning -> billing : "At most three retries in seven days"
-  dunning -> access : "Suspend after grace period"
-  portal -> cancellation : "Cancel subscription"
-  cancellation -> ledger : "Serialize effective time with renewal"
-  cancellation -> access : "Revoke at effective time"
-  access -> entitlements : "Versioned entitlement update"
-  cancellation -> notifications : "Notify customer"
+  description: "Billing periods are unique. Failed renewals have a bounded grace policy; cancellation and renewal serialize on durable subscription state."
+  relations: local
+  renewal -> ledger "Claim unique billing period"
+  renewal -> billing "Request renewal payment"
+  billing -> payments "Collect invoice once"
+  payments -> callbacks "Signed renewal result"
+  callbacks -> ledger "Record terminal or pending result"
+  callbacks -> dunning "Confirmed failure"
+  dunning -> billing "At most three retries in seven days"
+  dunning -> access "Suspend after grace period"
+  portal -> cancellation "Cancel subscription"
+  cancellation -> ledger "Serialize effective time with renewal"
+  cancellation -> access "Revoke at effective time"
+  access -> entitlements "Versioned entitlement update"
+  cancellation -> notifications "Notify customer"
 }
 
 view recovery "Compensation and reconciliation" {
-  description "A failed activation triggers explicit compensation. Unknown payment results are queried before any new charge or refund is attempted."
-  include provisioner, compensation, access, entitlements, payments, ledger, events, recovery, tenants, console
+  description: "A failed activation triggers explicit compensation. Unknown payment results are queried before any new charge or refund is attempted."
+  include: [provisioner, compensation, access, entitlements, payments, ledger, events, recovery, tenants, console]
 }
 
 view system "System overview" {
-  description "Customer channels, nested lifecycle capabilities, durable records, event delivery, and external providers."
-  include channels, platform, records, partners
-  detail 0.65
+  description: "Customer channels, nested lifecycle capabilities, durable records, event delivery, and external providers."
+  include: [channels, platform, records, partners]
+  detail: 0.65
 }

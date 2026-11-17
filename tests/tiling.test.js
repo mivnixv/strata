@@ -30,25 +30,23 @@ import { parseStrata,formatStrata } from '../src/language.js';
 import { DiagramLayout } from '../src/framework.js';
 import { SemanticDetail } from '../src/tiling/semantic.js';
 const tileSource=`app group "Group" {
- sizes proportional
- compactness 0.8
+ layout { sizes: proportional; compactness: 0.8 }
  service first "First"
  service second "Second"
 }
 service target "Target"
-second -> target : "one"
-first -> target : "two"
-second -> target : "three"
+second -> target "one"
+first -> target "two"
+second -> target "three"
 view main "Main" {
- include group, target
- sizes auto
- compactness 0.6
- detail 0.7
+ include: [group, target]
+ layout { sizes: auto; compactness: 0.6 }
+ detail: 0.7
 }`;
 test('tile settings round-trip and reject invalid ranges and modes',()=>{
  const model=parseStrata(tileSource);
  assert.deepEqual(parseStrata(formatStrata(model)),model);
- for(const [before,after] of [['compactness 0.8','compactness 0'],['detail 0.7','detail 1.1'],['sizes auto','sizes invalid']]) {
+ for(const [before,after] of [["compactness: 0.8","compactness: 0"],["detail: 0.7","detail: 1.1"],["sizes: auto","sizes: invalid"]]) {
   assert.throws(()=>parseStrata(tileSource.replace(before,after)));
  }
 });
@@ -71,7 +69,7 @@ test('semantic detail uses pixel budget, respects manual collapse, and never cha
  assert.throws(()=>resolver.collapse(base,{detail:2}),/detail/);
 });
 test('compactness reduces channel space without overlapping tiles',()=>{
- const spacious=new DiagramLayout(parseStrata(tileSource.replace('compactness 0.6','compactness 0.1'))).create('main');
- const compact=new DiagramLayout(parseStrata(tileSource.replace('compactness 0.6','compactness 1'))).create('main');
+ const spacious=new DiagramLayout(parseStrata(tileSource.replace("compactness: 0.6","compactness: 0.1"))).create('main');
+ const compact=new DiagramLayout(parseStrata(tileSource.replace("compactness: 0.6","compactness: 1"))).create('main');
  assert.ok(compact.width<spacious.width);
 });

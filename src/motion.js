@@ -163,10 +163,10 @@ export class DiagramMotion {
 
 
     this.activeSVG = next;
-    const addOpacity = (group,from,to,delay = 0) => {
+    const addOpacity = (group,from,to,delay = 0,phasedEntry = true) => {
       if (from === to) { return; }
 
-      fades.push({element:group.element,from,to,delay,entering:from===0});
+      fades.push({element:group.element,from,to,delay,entering:from===0 && phasedEntry});
       finals.push(() => group.element.setAttribute('opacity',String(to)));
     };
     for (const [id,group] of after.nodes) {
@@ -182,7 +182,10 @@ export class DiagramMotion {
       addOpacity(group,old?.opacity ?? 0,group.opacity,old ? 0 : 35);
     }
     for (const [id,group] of after.notes) {
-      addOpacity(group,before.notes.get(id)?.opacity ?? 0,group.opacity);
+      const owners=JSON.parse(group.element.getAttribute('data-note-owners') ?? '[]');
+      const entering=owners.filter(owner=>!before.nodes.has(owner)).map(owner=>after.nodes.get(owner)).filter(Boolean);
+      const delay=entering.length ? Math.min(90,Math.max(...entering.map(owner=>owner.depth))*18) : 0;
+      addOpacity(group,before.notes.get(id)?.opacity ?? 0,group.opacity,delay,entering.length>0);
     }
     this.addExits(before,after,next,fades,tweens,finals);
     const finalView = next.getAttribute('viewBox');

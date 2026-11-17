@@ -9,245 +9,302 @@ note 1 "Illustrative retail architecture. Click a note or numbered mark to isola
 
 app clients "Customer channels" {
 
-  icon "svgs/solid/users.svg"
-  description "Web and mobile channels for shopping, orders, and returns."
+  icon: "svgs/solid/users.svg"
+  description: "Web and mobile channels for shopping, orders, and returns."
   app web "Storefront & Your Orders" {
-    icon "svgs/solid/store.svg"
-    description "Browse products, check out, and manage orders online."
+    icon: "svgs/solid/store.svg"
+    description: "Browse products, check out, and manage orders online."
   }
   app mobile "Mobile storefront" {
-    icon "svgs/solid/mobile_alt.svg"
-    description "Shop and track orders from the mobile app."
+    icon: "svgs/solid/mobile_alt.svg"
+    description: "Shop and track orders from the mobile app."
   }
 }
 
 service platform "Commerce platform" {
-  subheader "Checkout, fulfillment, and after-sales"
+  subheader: "Checkout, fulfillment, and after-sales"
 
-  icon "svgs/solid/sitemap.svg"
-  description "Illustrative Amazon-style commerce built on our existing infrastructure."
+  icon: "svgs/solid/sitemap.svg"
+  description: "Illustrative Amazon-style commerce built on our existing infrastructure."
   # Container note: its mark stays with this boundary when the group is collapsed.
-  note 2 "Commerce boundary: checkout, fulfillment, returns, and recovery." connect : "System boundary" dashed
+  note 2 "Commerce boundary: checkout, fulfillment, returns, and recovery." {
+    connector {
+      label: "System boundary"
+      line: dashed
+    }
+  }
   infrastructure gateway "API gateway" {
-    subheader "Customer request entry point"
-    noLargeIcon
-    icon "svgs/solid/network_wired.svg"
-    description "Routes customer requests and forwards checkout idempotency keys."
+    subheader: "Customer request entry point"
+    large-icon: false
+    icon: "svgs/solid/network_wired.svg"
+    description: "Routes customer requests and forwards checkout idempotency keys."
   }
   service services "Order capabilities" {
-    icon "svgs/solid/cubes.svg"
-    description "Logical capabilities covering checkout through delivery and returns."
+    icon: "svgs/solid/cubes.svg"
+    description: "Logical capabilities covering checkout through delivery and returns."
     service catalog "Browse products" {
-      icon "svgs/solid/search.svg"
-      description "Shows products, prices, and estimated availability."
+      icon: "svgs/solid/search.svg"
+      description: "Shows products, prices, and estimated availability."
     }
     service cart "Build cart" {
-      icon "svgs/solid/shopping_cart.svg"
-      description "Stores selected items; checkout revalidates prices and stock."
+      icon: "svgs/solid/shopping_cart.svg"
+      description: "Stores selected items; checkout revalidates prices and stock."
     }
     service orders "Place & confirm order" {
-      icon "svgs/solid/receipt.svg"
-      description "Reserves stock, authorizes payment, and commits the order with an outbox event."
+      icon: "svgs/solid/receipt.svg"
+      description: "Reserves stock, authorizes payment, and commits the order with an outbox event."
       # Two notes on the same item: mark-only and a larger note with a solid connector.
       note 3 "Accept the order only after reserving stock and authorizing payment."
-      note 4 "Preserve the checkout idempotency key across retries." position top-right fontSize 18 connect : "Retry contract" solid
+      note 4 "Preserve the checkout idempotency key across retries." {
+        position: top-right
+        font-size: 18
+        connector {
+          label: "Retry contract"
+        }
+      }
     }
     service inventory "Reserve inventory" {
-      icon "svgs/solid/boxes.svg"
-      description "Reserves stock in PostgreSQL and releases cancelled or expired reservations."
+      icon: "svgs/solid/boxes.svg"
+      description: "Reserves stock in PostgreSQL and releases cancelled or expired reservations."
       # Decimal font size and an optional labelled dashed annotation line.
-      note 5 "Release reservations for cancelled or expired orders." position left fontSize 12.5 connect : "Reservation lifetime" dashed
+      note 5 "Release reservations for cancelled or expired orders." {
+        position: left
+        font-size: 12.5
+        connector {
+          label: "Reservation lifetime"
+          line: dashed
+        }
+      }
     }
     service payments "Authorize & settle" {
-      icon "svgs/solid/credit_card.svg"
-      description "Authorizes payment at checkout and captures it at dispatch."
+      icon: "svgs/solid/credit_card.svg"
+      description: "Authorizes payment at checkout and captures it at dispatch."
     }
     service relay "Publish committed events" {
-      icon "svgs/solid/paper_plane.svg"
-      description "Publishes committed outbox events to the queue; consumers deduplicate retries."
+      icon: "svgs/solid/paper_plane.svg"
+      description: "Publishes committed outbox events to the queue; consumers deduplicate retries."
     }
     service fulfillment "Pick & pack" {
-      icon "svgs/solid/box_open.svg"
-      description "Turns confirmed orders into deduplicated pick-and-pack tasks."
+      icon: "svgs/solid/box_open.svg"
+      description: "Turns confirmed orders into deduplicated pick-and-pack tasks."
     }
     service shipping "Dispatch shipment" {
-      icon "svgs/solid/truck_loading.svg"
-      description "Captures payment, records tracking, and hands parcels to the carrier."
+      icon: "svgs/solid/truck_loading.svg"
+      description: "Captures payment, records tracking, and hands parcels to the carrier."
     }
     service tracking "Track delivery" {
-      icon "svgs/solid/map_marker_alt.svg"
-      description "Saves carrier updates and ignores duplicate or stale events."
+      icon: "svgs/solid/map_marker_alt.svg"
+      description: "Saves carrier updates and ignores duplicate or stale events."
     }
     service notifications "Notify customer" {
-      icon "svgs/solid/bell.svg"
-      description "Sends order, delivery, and refund updates without duplicate messages."
+      icon: "svgs/solid/bell.svg"
+      description: "Sends order, delivery, and refund updates without duplicate messages."
     }
     service returns "Approve & inspect return" {
-      icon "svgs/solid/undo.svg"
-      description "Checks return eligibility, coordinates inspection, and approves refunds."
+      icon: "svgs/solid/undo.svg"
+      description: "Checks return eligibility, coordinates inspection, and approves refunds."
     }
     service refunds "Issue refund" {
-      icon "svgs/solid/money_bill_wave.svg"
-      description "Refunds captured payments and records provider confirmation."
+      icon: "svgs/solid/money_bill_wave.svg"
+      description: "Refunds captured payments and records provider confirmation."
     }
   }
   service exceptions "Recovery paths" {
-    icon "svgs/solid/exclamation_triangle.svg"
-    description "Handles cancellations, failures, and reconciliation."
+    icon: "svgs/solid/exclamation_triangle.svg"
+    description: "Handles cancellations, failures, and reconciliation."
     service cancellation "Decline or cancel" {
-      icon "svgs/solid/ban.svg"
-      description "Cancels unshipped orders, releases stock, and voids payment authorizations."
+      icon: "svgs/solid/ban.svg"
+      description: "Cancels unshipped orders, releases stock, and voids payment authorizations."
     }
     service recovery "Retry & reconcile" {
-      icon "svgs/solid/sync_alt.svg"
-      description "Retries failed work and records unresolved exceptions in PostgreSQL."
+      icon: "svgs/solid/sync_alt.svg"
+      description: "Retries failed work and records unresolved exceptions in PostgreSQL."
     }
   }
 }
 
 group data "Existing infrastructure" {
-  dashed
+  line: dashed
 
-  icon "svgs/solid/server.svg"
-  description "Reuses the existing database, cache, and event broker."
+  icon: "svgs/solid/server.svg"
+  description: "Reuses the existing database, cache, and event broker."
   database postgres "PostgreSQL" {
-    subheader "Durable system of record"
-    icon "brands/brands_p/postgresql_icon.svg"
-    description "Stores authoritative orders, stock, payments, shipments, and outbox records."
+    subheader: "Durable system of record"
+    icon: "brands/brands_p/postgresql_icon.svg"
+    description: "Stores authoritative orders, stock, payments, shipments, and outbox records."
     note 6 "PostgreSQL is the source of truth. Redis remains a disposable cache."
   }
   database redis "Redis cache" {
-    icon "brands/brands_r/redis_icon.svg"
-    description "Caches products, temporary carts, and tracking snapshots."
+    icon: "brands/brands_r/redis_icon.svg"
+    description: "Caches products, temporary carts, and tracking snapshots."
   }
   infrastructure queue "Event queue" {
-    icon "svgs/solid/list.svg"
-    description "Delivers order and shipment events; consumers handle redelivery."
+    icon: "svgs/solid/list.svg"
+    description: "Delivers order and shipment events; consumers handle redelivery."
   }
 }
 
 external external "External operations" {
 
-  icon "svgs/solid/globe.svg"
-  description "Payment partners, warehouses, and delivery operations."
+  icon: "svgs/solid/globe.svg"
+  description: "Payment partners, warehouses, and delivery operations."
   external provider "Payment provider" {
-    icon "svgs/solid/credit_card.svg"
-    description "Authorizes, captures, voids, and refunds payments."
+    icon: "svgs/solid/credit_card.svg"
+    description: "Authorizes, captures, voids, and refunds payments."
   }
   external warehouse "Fulfillment center" {
-    icon "svgs/solid/warehouse.svg"
-    description "Picks and packs orders; receives and inspects returns."
+    icon: "svgs/solid/warehouse.svg"
+    description: "Picks and packs orders; receives and inspects returns."
   }
   external carrier "Sort, last mile, deliver" {
-    icon "svgs/solid/truck.svg"
-    description "Transports parcels and reports delivery progress."
+    icon: "svgs/solid/truck.svg"
+    description: "Transports parcels and reports delivery progress."
   }
 }
 
 # Discovery and checkout: customer actions enter through the existing gateway.
-web -> gateway : "1. Shop"
-mobile -> gateway : "Same customer APIs"
-gateway -> catalog : "Browse headphones"
-catalog -> cart : "Add one item"
-cart -> redis : "Ephemeral cart"
-catalog -> redis : "Product read cache"
-catalog -> postgres : "Product and price truth"
-gateway -> cart : "Review cart"
-gateway -> orders : "2. Checkout"
-orders -> redis : "Read cart; revalidate price"
-orders -> inventory : "3. Reserve"
-inventory -> postgres : "Atomic stock reservation"
-orders -> payments : "4. Authorize"
+web -> gateway "1. Shop"
+mobile -> gateway "Same customer APIs"
+gateway -> catalog "Browse headphones"
+catalog -> cart "Add one item"
+cart -> redis "Ephemeral cart"
+catalog -> redis "Product read cache"
+catalog -> postgres "Product and price truth"
+gateway -> cart "Review cart"
+gateway -> orders "2. Checkout"
+orders -> redis "Read cart; revalidate price"
+orders -> inventory "3. Reserve"
+inventory -> postgres "Atomic stock reservation"
+orders -> payments "4. Authorize"
 # Relationship note: the mark belongs to this connection, not either endpoint.
-payments -> provider : "Authorize; capture later" note 7 "Authorization happens at checkout; capture waits until dispatch." connect : "Payment timing" solid
-orders -> postgres : "5. Commit"
-payments -> postgres : "Payment references"
+payments -> provider "Authorize; capture later" {
+  note 7 "Authorization happens at checkout; capture waits until dispatch." {
+    connector {
+      label: "Payment timing"
+    }
+  }
+}
+orders -> postgres "5. Commit"
+payments -> postgres "Payment references"
 
 # Committed events connect order acceptance to physical fulfillment.
-postgres -> relay : "Committed outbox only"
+postgres -> relay "Committed outbox only"
 # An attached relationship note can omit its annotation connector entirely.
-relay -> queue : "6. Publish" note 8 "Queue delivery may repeat. Consumers deduplicate committed events."
-queue -> fulfillment : "7. Fulfill"
-fulfillment -> warehouse : "8. Pick/pack"
-warehouse -> shipping : "9. Packed"
-shipping -> payments : "10. Capture"
-shipping -> carrier : "11. Dispatch"
-shipping -> postgres : "Shipment and tracking ID"
-carrier -> tracking : "12. Deliver"
-tracking -> postgres : "Durable shipment status"
-tracking -> notifications : "13. Notify"
-notifications -> web : "Your Orders updates"
+relay -> queue "6. Publish" {
+  note 8 "Queue delivery may repeat. Consumers deduplicate committed events."
+}
+queue -> fulfillment "7. Fulfill"
+fulfillment -> warehouse "8. Pick/pack"
+warehouse -> shipping "9. Packed"
+shipping -> payments "10. Capture"
+shipping -> carrier "11. Dispatch"
+shipping -> postgres "Shipment and tracking ID"
+carrier -> tracking "12. Deliver"
+tracking -> postgres "Durable shipment status"
+tracking -> notifications "13. Notify"
+notifications -> web "Your Orders updates"
 
 # After-sales and recovery are shown in their own focused perspectives.
-gateway -> returns : "Request eligible return"
-returns -> warehouse : "Receive and inspect"
-returns -> inventory : "Restock if sellable"
-returns -> refunds : "Approved refund"
-refunds -> provider : "Refund captured payment"
-refunds -> postgres : "Refund state and reference"
-refunds -> notifications : "Refund confirmed"
-orders -> cancellation : "Decline / stock unavailable"
-cancellation -> inventory : "Release reservation"
-cancellation -> payments : "Void authorization"
-cancellation -> postgres : "Cancel before shipment"
-fulfillment -> recovery : "Pick/pack failure"
-shipping -> recovery : "Capture failure; hold parcel"
-carrier -> recovery : "Delay / delivery exception"
-queue -> recovery : "Repeated processing failure"
-recovery -> postgres : "Persist exception / replay ID"
+gateway -> returns "Request eligible return"
+returns -> warehouse "Receive and inspect"
+returns -> inventory "Restock if sellable"
+returns -> refunds "Approved refund"
+refunds -> provider "Refund captured payment"
+refunds -> postgres "Refund state and reference"
+refunds -> notifications "Refund confirmed"
+orders -> cancellation "Decline / stock unavailable"
+cancellation -> inventory "Release reservation"
+cancellation -> payments "Void authorization"
+cancellation -> postgres "Cancel before shipment"
+fulfillment -> recovery "Pick/pack failure"
+shipping -> recovery "Capture failure; hold parcel"
+carrier -> recovery "Delay / delivery exception"
+queue -> recovery "Repeated processing failure"
+recovery -> postgres "Persist exception / replay ID"
 
 view orders "Order lifecycle" {
   # View-only item note: global order notes remain; this ninth note starts a new row.
-  note 9 "Follow steps 1–13 from checkout to delivery. This explanation appears only in Order lifecycle." on orders position bottom-right fontSize 16
-  description "Follow a headphone order from checkout to delivery."
-  include web, gateway, orders, inventory, payments, relay, fulfillment, shipping, tracking, notifications, postgres, redis, queue, provider, warehouse, carrier
+  note 9 "Follow steps 1–13 from checkout to delivery. This explanation appears only in Order lifecycle." {
+    on: orders
+    position: bottom-right
+    font-size: 16
+  }
+  description: "Follow a headphone order from checkout to delivery."
+  include: [web, gateway, orders, inventory, payments, relay, fulfillment, shipping, tracking, notifications, postgres, redis, queue, provider, warehouse, carrier]
 }
 
 view checkout "Browse & checkout" {
   # View-only detail on an existing item; its global notes 3 and 4 remain visible.
-  note 13 "Checkout view: validate cart totals before accepting the order." on orders position right connect : "Checkout gate" solid
+  note 13 "Checkout view: validate cart totals before accepting the order." {
+    on: orders
+    position: right
+    connector {
+      label: "Checkout gate"
+    }
+  }
   # Same endpoints/label as the global edge: one connection keeps global note 7 and local note 14.
-  payments -> provider : "Authorize; capture later" note 14 "Retry authorization with the same payment request ID." connect dashed
-  description "Browse products, build a cart, reserve stock, and authorize payment."
-  include web, gateway, catalog, cart, orders, inventory, payments, postgres, redis, provider
+  payments -> provider "Authorize; capture later" {
+    note 14 "Retry authorization with the same payment request ID." {
+      connector {
+        line: dashed
+      }
+    }
+  }
+  description: "Browse products, build a cart, reserve stock, and authorize payment."
+  include: [web, gateway, catalog, cart, orders, inventory, payments, postgres, redis, provider]
 }
 
 view fulfillment "Fulfillment & delivery" {
-  description "Publish the order, pick and pack, capture payment, and deliver."
-  include postgres, relay, queue, fulfillment, warehouse, shipping, payments, provider, carrier, tracking, notifications
+  description: "Publish the order, pick and pack, capture payment, and deliver."
+  include: [postgres, relay, queue, fulfillment, warehouse, shipping, payments, provider, carrier, tracking, notifications]
 }
 
 view aftersales "Returns & refunds" {
-  description "Inspect eligible returns, refund payments, and restock sellable goods."
-  include web, gateway, returns, warehouse, inventory, refunds, provider, postgres, notifications
+  description: "Inspect eligible returns, refund payments, and restock sellable goods."
+  include: [web, gateway, returns, warehouse, inventory, refunds, provider, postgres, notifications]
   # A note attached to a view-local connection never leaks to other perspectives.
-  warehouse -> returns : "Inspection outcome" note 10 "Inspect the returned item before approving restocking and a refund." connect : "Inspection gate" dashed
+  warehouse -> returns "Inspection outcome" {
+    note 10 "Inspect the returned item before approving restocking and a refund." {
+      connector {
+        label: "Inspection gate"
+        line: dashed
+      }
+    }
+  }
 }
 
 view failures "Failures & recovery" {
-  note 11 "Retry recoverable failures; persist unresolved exceptions for reconciliation." fontSize 15.5
-  description "Cancel unshipped orders and recover from processing or delivery failures."
+  note 11 "Retry recoverable failures; persist unresolved exceptions for reconciliation." {
+    font-size: 15.5
+  }
+  description: "Cancel unshipped orders and recover from processing or delivery failures."
   # Optional: keep this perspective focused on its own relationships.
   # Resource membership is inferred from these endpoints and their parent groups.
-  relations only
-  orders -> cancellation : "Declined / unavailable"
-  cancellation -> inventory : "Release reservation"
-  cancellation -> payments : "Void authorization"
-  payments -> provider : "Void request"
-  cancellation -> postgres : "Cancellation record"
-  fulfillment -> recovery : "Pick/pack failure"
-  shipping -> recovery : "Capture failed; hold" note 12 "Hold the parcel until payment capture succeeds." connect dashed
-  carrier -> recovery : "Delivery exception"
-  queue -> recovery : "Processing retries exhausted"
-  recovery -> postgres : "Persist and reconcile"
+  relations: local
+  orders -> cancellation "Declined / unavailable"
+  cancellation -> inventory "Release reservation"
+  cancellation -> payments "Void authorization"
+  payments -> provider "Void request"
+  cancellation -> postgres "Cancellation record"
+  fulfillment -> recovery "Pick/pack failure"
+  shipping -> recovery "Capture failed; hold" {
+    note 12 "Hold the parcel until payment capture succeeds." {
+      connector {
+        line: dashed
+      }
+    }
+  }
+  carrier -> recovery "Delivery exception"
+  queue -> recovery "Processing retries exhausted"
+  recovery -> postgres "Persist and reconcile"
 }
 
 view data "Data dependencies" {
-  description "See how PostgreSQL, Redis, and the queue support commerce."
-  include catalog, cart, orders, inventory, payments, postgres, redis, relay, queue, fulfillment, shipping, tracking, refunds
+  description: "See how PostgreSQL, Redis, and the queue support commerce."
+  include: [catalog, cart, orders, inventory, payments, postgres, redis, relay, queue, fulfillment, shipping, tracking, refunds]
 }
 
 view system "System overview" {
-  description "Illustrative retail architecture with reused infrastructure and external partners."
-  include clients, platform, data, external
+  description: "Illustrative retail architecture with reused infrastructure and external partners."
+  include: [clients, platform, data, external]
 }

@@ -45,7 +45,7 @@ test('diagonal endpoint lengths and dash offsets stay aligned with the complete 
 });
 
 test('standalone HTML includes executable endpoint fades with dashed styling',async()=>{
-  const html=await new StandaloneBuilder().build('service api "API"\nservice worker "Worker"\napi -> worker dashed');
+  const html=await new StandaloneBuilder().build("service api \"API\"\nservice worker \"Worker\"\napi -> worker {\n  line: dashed\n}");
   assert.ok(html.includes('data-connection-ends'));
   assert.ok(html.includes('stop-opacity'));
   assert.ok(html.includes('stroke-dashoffset'));

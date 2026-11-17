@@ -3,191 +3,191 @@
 diagram "Event ingestion and analytics publication"
 
 external producers "Event producers" {
-  icon "svgs/solid/globe.svg"
+  icon: "svgs/solid/globe.svg"
   external applications "Application events" {
-    icon "svgs/solid/server.svg"
+    icon: "svgs/solid/server.svg"
   }
   external partners "Partner batch feeds" {
-    icon "svgs/solid/file_alt.svg"
+    icon: "svgs/solid/file_alt.svg"
   }
 }
 
 service ingestion "Ingestion boundary" {
-  icon "svgs/solid/cloud.svg"
+  icon: "svgs/solid/cloud.svg"
   service gateway "Authenticate and admit events" {
-    icon "svgs/solid/shield_alt.svg"
-    description "Checks producer credentials and payload size; applies per-producer admission limits before accepting work."
+    icon: "svgs/solid/shield_alt.svg"
+    description: "Checks producer credentials and payload size; applies per-producer admission limits before accepting work."
   }
   service validator "Validate schema and event ID" {
-    icon "svgs/solid/clipboard_check.svg"
-    description "Requires a supported schema version and stable event ID. Invalid events retain an error reason in quarantine."
+    icon: "svgs/solid/clipboard_check.svg"
+    description: "Requires a supported schema version and stable event ID. Invalid events retain an error reason in quarantine."
   }
   infrastructure stream "Partitioned event log" {
-    icon "svgs/solid/server.svg"
-    description "Ordering is per partition. Events can be redelivered; consumers must not assume global ordering."
+    icon: "svgs/solid/server.svg"
+    description: "Ordering is per partition. Events can be redelivered; consumers must not assume global ordering."
   }
   service archive "Archive raw batches" {
-    icon "svgs/solid/box.svg"
-    description "Stores immutable raw batches and manifests keyed by partition and offset range."
+    icon: "svgs/solid/box.svg"
+    description: "Stores immutable raw batches and manifests keyed by partition and offset range."
   }
 }
 
 service processing "Processing and publication" {
-  icon "svgs/solid/cogs.svg"
+  icon: "svgs/solid/cogs.svg"
   service normalize "Normalize and deduplicate" {
-    icon "svgs/solid/exchange_alt.svg"
-    description "Deduplicates by event ID within the documented retention window. Checkpoints advance only after output and batch state are durable."
+    icon: "svgs/solid/exchange_alt.svg"
+    description: "Deduplicates by event ID within the documented retention window. Checkpoints advance only after output and batch state are durable."
   }
   service enrich "Enrich reference data" {
-    icon "svgs/solid/search.svg"
-    description "Pins a reference-data version to each batch, so replay produces explainable results."
+    icon: "svgs/solid/search.svg"
+    description: "Pins a reference-data version to each batch, so replay produces explainable results."
   }
   service quality "Apply quality gates" {
-    icon "svgs/solid/clipboard_check.svg"
-    description "Checks required fields, duplicate rates, and aggregate invariants. Failed batches remain unpublished."
+    icon: "svgs/solid/clipboard_check.svg"
+    description: "Checks required fields, duplicate rates, and aggregate invariants. Failed batches remain unpublished."
   }
   service aggregate "Build staged aggregates" {
-    icon "svgs/solid/database.svg"
-    description "Writes to a run-specific staging namespace. Repeated work for the same run replaces staged output deterministically."
+    icon: "svgs/solid/database.svg"
+    description: "Writes to a run-specific staging namespace. Repeated work for the same run replaces staged output deterministically."
   }
   service publish "Promote dataset version" {
-    icon "svgs/solid/check_circle.svg"
-    description "After validation, atomically updates a dataset manifest to the completed version. Readers never see a partially staged run."
+    icon: "svgs/solid/check_circle.svg"
+    description: "After validation, atomically updates a dataset manifest to the completed version. Readers never see a partially staged run."
   }
   service catalog "Register lineage and schema" {
-    icon "svgs/solid/file_alt.svg"
-    description "Associates each published version with input manifests, schema version, reference-data version, and processing run."
+    icon: "svgs/solid/file_alt.svg"
+    description: "Associates each published version with input manifests, schema version, reference-data version, and processing run."
   }
 }
 
 service operations "Replay and operations" {
-  icon "svgs/solid/exclamation_triangle.svg"
+  icon: "svgs/solid/exclamation_triangle.svg"
   service scheduler "Schedule windows and backfills" {
-    icon "svgs/solid/clock.svg"
-    description "Assigns unique run IDs, pins input ranges, and bounds concurrent backfills to protect live processing."
+    icon: "svgs/solid/clock.svg"
+    description: "Assigns unique run IDs, pins input ranges, and bounds concurrent backfills to protect live processing."
   }
   service replay "Replay an immutable input range" {
-    icon "svgs/solid/exchange_alt.svg"
-    description "Uses a new run ID and isolated staging data. Successful replay still passes the same quality and publication gates."
+    icon: "svgs/solid/exchange_alt.svg"
+    description: "Uses a new run ID and isolated staging data. Successful replay still passes the same quality and publication gates."
   }
   service late "Handle late arrivals" {
-    icon "svgs/solid/clock.svg"
-    description "Events outside the active watermark create a correction request for affected windows; they do not silently rewrite published data."
+    icon: "svgs/solid/clock.svg"
+    description: "Events outside the active watermark create a correction request for affected windows; they do not silently rewrite published data."
   }
   service alerts "Route failures for review" {
-    icon "svgs/solid/bell.svg"
-    description "Worker retries stop after three attempts. Repeated failure or quality rejection creates an operations review item."
+    icon: "svgs/solid/bell.svg"
+    description: "Worker retries stop after three attempts. Repeated failure or quality rejection creates an operations review item."
   }
   app operator "Data operations console" {
-    icon "svgs/solid/user.svg"
+    icon: "svgs/solid/user.svg"
   }
 }
 
 database storage "Data stores" {
-  icon "svgs/solid/database.svg"
+  icon: "svgs/solid/database.svg"
   database raw "Immutable raw archive" {
-    icon "svgs/solid/box.svg"
+    icon: "svgs/solid/box.svg"
   }
   database reference "Versioned reference snapshots" {
-    icon "svgs/solid/database.svg"
+    icon: "svgs/solid/database.svg"
   }
   database state "Runs, manifests, and checkpoints" {
-    icon "svgs/solid/file_alt.svg"
+    icon: "svgs/solid/file_alt.svg"
   }
   database quarantine "Rejected events and reasons" {
-    icon "svgs/solid/exclamation_triangle.svg"
+    icon: "svgs/solid/exclamation_triangle.svg"
   }
   database staging "Isolated staged datasets" {
-    icon "svgs/solid/database.svg"
+    icon: "svgs/solid/database.svg"
   }
   database warehouse "Published dataset versions" {
-    icon "svgs/solid/database.svg"
+    icon: "svgs/solid/database.svg"
   }
 }
 
 app consumers "Analytics consumers" {
-  icon "svgs/solid/globe.svg"
+  icon: "svgs/solid/globe.svg"
   app dashboard "Business dashboards" {
-    icon "svgs/solid/clipboard_check.svg"
+    icon: "svgs/solid/clipboard_check.svg"
   }
   app exports "Scheduled downstream extracts" {
-    icon "svgs/solid/file_alt.svg"
+    icon: "svgs/solid/file_alt.svg"
   }
 }
 
-applications -> gateway : "1. Submit application events"
-partners -> gateway : "2. Submit partner batch"
-gateway -> validator : "3. Admitted envelope"
-validator -> stream : "4. Accepted event"
-validator -> quarantine : "Rejected schema or identity"
-stream -> archive : "5. Partition batches"
-archive -> raw : "6. Immutable batch and checksum"
-archive -> state : "7. Commit input manifest"
-scheduler -> state : "8. Claim run and input range"
-scheduler -> normalize : "9. Start window"
-raw -> normalize : "10. Pinned raw manifest"
-normalize -> state : "Deduplication state and checkpoints"
-normalize -> enrich : "11. Canonical events"
-reference -> enrich : "12. Pinned reference version"
-enrich -> quality : "13. Enriched batch"
-quality -> aggregate : "14. Quality accepted"
-quality -> quarantine : "Rejected batch and diagnostics"
-aggregate -> staging : "15. Run-specific aggregates"
-aggregate -> publish : "16. Completed run"
-publish -> staging : "17. Verify completed staged output"
-publish -> warehouse : "18. Publish immutable version"
-publish -> state : "19. Atomic active-version manifest"
-publish -> catalog : "20. Register published lineage"
-catalog -> state : "Lineage and schema metadata"
-warehouse -> dashboard : "Read committed version"
-warehouse -> exports : "Extract a pinned version"
-normalize -> late : "Outside active watermark"
-late -> scheduler : "Request correction window"
-quality -> alerts : "Quality gate failed"
-enrich -> alerts : "Reference version unavailable"
-aggregate -> alerts : "Processing retries exhausted"
-alerts -> operator : "Review failed run"
-operator -> replay : "Approve bounded replay range"
-replay -> raw : "Load immutable input manifest"
-replay -> scheduler : "Schedule isolated correction run"
+applications -> gateway "1. Submit application events"
+partners -> gateway "2. Submit partner batch"
+gateway -> validator "3. Admitted envelope"
+validator -> stream "4. Accepted event"
+validator -> quarantine "Rejected schema or identity"
+stream -> archive "5. Partition batches"
+archive -> raw "6. Immutable batch and checksum"
+archive -> state "7. Commit input manifest"
+scheduler -> state "8. Claim run and input range"
+scheduler -> normalize "9. Start window"
+raw -> normalize "10. Pinned raw manifest"
+normalize -> state "Deduplication state and checkpoints"
+normalize -> enrich "11. Canonical events"
+reference -> enrich "12. Pinned reference version"
+enrich -> quality "13. Enriched batch"
+quality -> aggregate "14. Quality accepted"
+quality -> quarantine "Rejected batch and diagnostics"
+aggregate -> staging "15. Run-specific aggregates"
+aggregate -> publish "16. Completed run"
+publish -> staging "17. Verify completed staged output"
+publish -> warehouse "18. Publish immutable version"
+publish -> state "19. Atomic active-version manifest"
+publish -> catalog "20. Register published lineage"
+catalog -> state "Lineage and schema metadata"
+warehouse -> dashboard "Read committed version"
+warehouse -> exports "Extract a pinned version"
+normalize -> late "Outside active watermark"
+late -> scheduler "Request correction window"
+quality -> alerts "Quality gate failed"
+enrich -> alerts "Reference version unavailable"
+aggregate -> alerts "Processing retries exhausted"
+alerts -> operator "Review failed run"
+operator -> replay "Approve bounded replay range"
+replay -> raw "Load immutable input manifest"
+replay -> scheduler "Schedule isolated correction run"
 
 view pipeline "Ingestion to publication" {
-  description "Trace an admitted event through immutable archiving, normalization, versioned enrichment, quality gates, staging, and publication."
-  include applications, partners, gateway, validator, stream, archive, raw, scheduler, state, normalize, reference, enrich, quality, aggregate, staging, publish, warehouse
+  description: "Trace an admitted event through immutable archiving, normalization, versioned enrichment, quality gates, staging, and publication."
+  include: [applications, partners, gateway, validator, stream, archive, raw, scheduler, state, normalize, reference, enrich, quality, aggregate, staging, publish, warehouse]
 }
 
 view corrections "Late arrivals and replay" {
-  description "Corrections get a new run and isolated output. Every replay reuses the normal quality gates before a new dataset version becomes visible."
-  relations only
-  normalize -> late : "Past watermark"
-  late -> scheduler : "Affected window"
-  operator -> replay : "Approved input range"
-  replay -> raw : "Pinned immutable manifest"
-  replay -> scheduler : "New correction run ID"
-  scheduler -> state : "Claim run and range"
-  scheduler -> normalize : "Replay through normal processing"
-  normalize -> enrich : "Canonical events"
-  reference -> enrich : "Pinned snapshot"
-  enrich -> quality : "Revalidated enrichment"
-  quality -> aggregate : "Gate passed"
-  aggregate -> staging : "Isolated correction output"
-  aggregate -> publish : "Completed correction"
-  publish -> warehouse : "New immutable version"
-  publish -> state : "Atomic active-version change"
+  description: "Corrections get a new run and isolated output. Every replay reuses the normal quality gates before a new dataset version becomes visible."
+  relations: local
+  normalize -> late "Past watermark"
+  late -> scheduler "Affected window"
+  operator -> replay "Approved input range"
+  replay -> raw "Pinned immutable manifest"
+  replay -> scheduler "New correction run ID"
+  scheduler -> state "Claim run and range"
+  scheduler -> normalize "Replay through normal processing"
+  normalize -> enrich "Canonical events"
+  reference -> enrich "Pinned snapshot"
+  enrich -> quality "Revalidated enrichment"
+  quality -> aggregate "Gate passed"
+  aggregate -> staging "Isolated correction output"
+  aggregate -> publish "Completed correction"
+  publish -> warehouse "New immutable version"
+  publish -> state "Atomic active-version change"
 }
 
 view failures "Rejection and operational recovery" {
-  description "Schema rejection and quality failures do not reach publication. Exhausted transient retries require an explicit operations decision."
-  include gateway, validator, quarantine, quality, enrich, aggregate, alerts, operator, replay, raw, scheduler, state
+  description: "Schema rejection and quality failures do not reach publication. Exhausted transient retries require an explicit operations decision."
+  include: [gateway, validator, quarantine, quality, enrich, aggregate, alerts, operator, replay, raw, scheduler, state]
 }
 
 view consumption "Published data and lineage" {
-  description "Consumers pin published dataset versions. Catalog metadata links those versions to inputs and processing runs."
-  include staging, publish, warehouse, catalog, state, dashboard, exports
+  description: "Consumers pin published dataset versions. Catalog metadata links those versions to inputs and processing runs."
+  include: [staging, publish, warehouse, catalog, state, dashboard, exports]
 }
 
 view system "System overview" {
-  description "Nested ingestion, processing, operational controls, data stores, and analytics consumers."
-  include producers, ingestion, processing, operations, storage, consumers
-  detail 0.6
+  description: "Nested ingestion, processing, operational controls, data stores, and analytics consumers."
+  include: [producers, ingestion, processing, operations, storage, consumers]
+  detail: 0.6
 }

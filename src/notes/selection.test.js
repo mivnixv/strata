@@ -1,21 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseStrata } from '../language.js';
-import { DiagramLayout } from '../framework.js';
+import { DiagramLayout, selectionFocus } from '../framework.js';
 import { noteSelectionFocus, NoteInteraction } from './selection.js';
 import { NoteRenderer } from './notes.js';
 
 const model=parseStrata(`note 1 "General"
 service parent "Parent" {
  service api "API" {
-   note 2 "First"
-   note 3 "Second"
+   color: "#e6b86a"
+   note 2 "First" { connector {} }
+   note 3 "Second" { connector {} }
  }
 }
 database db "Database"
 service other "Other"
-api -> db note 4 "Query"
-api -> other note 5 "Other connection"`);
+api -> db {
+  note 4 "Query" { connector {} }
+}
+api -> other {
+  note 5 "Other connection" { connector {} }
+}`);
 const layout=new DiagramLayout(model).create('all');
 const focusFor=number=>noteSelectionFocus(layout.notes.find(entry=>entry.note.number===number),model.resources,12);
 
@@ -53,6 +58,28 @@ test('specific note selection dims other notes on the same item and its connecti
     assert.ok(rows.filter(child=>child.attrs['data-note-text']!==number).every(child=>child.attrs.opacity===.25));
     const marks=scene.group.children.filter(child=>child.attrs['data-note']);
     assert.ok(marks.every(child=>child.attrs.opacity===(child.attrs['data-note']===number ? 1 : .25)));
+  }
+});
+
+test('annotation connector colors require their item or their own note selection',()=>{
+  const el=(tag,attrs={},text)=>({tag,attrs,text,children:[],append(...children){this.children.push(...children);}});
+  const renderer=new NoteRenderer(el,text=>text.length*8);
+  const colors={tile:'#000',muted:'#aaaaaa',text:'#fff',canvas:'#000',palette:{service:'#123456',database:'#654321'}};
+  for (const [item,note,expected] of [
+    [null,null,{}],
+    ['api',null,{2:'#e6b86a',3:'#e6b86a',4:'#e6b86a',5:'#e6b86a'}],
+    ['db',null,{4:'#654321'}],
+    ['other',null,{5:'#123456'}],
+    [null,2,{2:'#e6b86a'}],
+    [null,4,{4:'#e6b86a'}],
+    [null,1,{}]
+  ]) {
+    const focus=note===null ? selectionFocus(layout,item,model.resources) : focusFor(note);
+    const scene=renderer.render(layout.notes,layout,colors,{focus,selectedNote:note,resources:model.resources});
+    for (const group of scene.connectors.children) {
+      const number=group.attrs['data-note-connector'];
+      assert.equal(group.children[0].attrs.stroke,expected[number] ?? colors.muted,`item=${item}, note=${note}, connector=${number}`);
+    }
   }
 });
 

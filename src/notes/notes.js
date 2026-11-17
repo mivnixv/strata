@@ -139,9 +139,9 @@ export class NoteRenderer {
     return lines;
   }
 
-  badge(note,anchor,colors,highlighted) {
+  badge(note,anchor,colors,highlighted,attachment={}) {
     const el=this.element, label=String(note.number), color=colors.muted;
-    const badge=el('g',{'data-note':note.number,'data-highlighted':String(highlighted),opacity:highlighted ? 1 : .25,'aria-label':`Note ${note.number}: ${note.text}`});
+    const badge=el('g',{...attachment,'data-note':note.number,'data-highlighted':String(highlighted),opacity:highlighted ? 1 : .25,'aria-label':`Note ${note.number}: ${note.text}`});
     const size=Math.min(14,14*22/Math.max(1,this.measure(label,14,400)));
     badge.append(el('circle',{cx:anchor.x,cy:anchor.y,r:14,fill:colors.tile,stroke:color,'stroke-width':1.5,'stroke-dasharray':'3 3'}));
     badge.append(el('text',{x:anchor.x,y:anchor.y,'dominant-baseline':'central','text-anchor':'middle','font-family':'Arial,sans-serif','font-size':size,fill:color},label));
@@ -149,9 +149,9 @@ export class NoteRenderer {
     return badge;
   }
 
-  block(note,box,colors,highlighted,dimmed) {
+  block(note,box,colors,highlighted,dimmed,attachment={}) {
     const el=this.element, color=colors.muted;
-    const group=el('g',{'aria-label':`Note ${note.number}: ${note.text}`,'data-note-text':note.number,'data-highlighted':String(highlighted),opacity:dimmed ? .25 : 1});
+    const group=el('g',{...attachment,'aria-label':`Note ${note.number}: ${note.text}`,'data-note-text':note.number,'data-highlighted':String(highlighted),opacity:dimmed ? .25 : 1});
     group.append(el('rect',{x:box.x,y:box.y,width:box.width,height:box.height,rx:3,fill:colors.tile,stroke:color,'stroke-width':1}));
     group.append(el('path',{d:`M ${box.x+32} ${box.y} V ${box.y+box.height}`,stroke:colors.muted,opacity:.35}));
     group.append(el('text',{x:box.x+12,y:box.y+8+Math.max(14,box.fontSize),fill:color,'font-family':'Arial,sans-serif','font-size':14,'font-weight':600},String(note.number)));
@@ -163,10 +163,10 @@ export class NoteRenderer {
     return group;
   }
 
-  connector(note,box,mark,colors,highlighted) {
+  connector(note,box,mark,colors,highlighted,attachment={}) {
     const el=this.element, color=colors.muted;
     const x=box.x+box.width/2, y=box.y, endY=mark.y+14;
-    const group=el('g',{'data-note-connector':note.number,'data-highlighted':String(highlighted),opacity:highlighted ? .5 : .25,'pointer-events':'none'});
+    const group=el('g',{...attachment,'data-note-connector':note.number,'data-highlighted':String(highlighted),opacity:highlighted ? .5 : .25,'pointer-events':'none'});
     const d=`M ${x} ${y} C ${x} ${y-48}, ${mark.x} ${endY+48}, ${mark.x} ${endY}`;
     group.append(el('path',{d,fill:'none',stroke:color,'stroke-width':1.5,...(note.connector.dashed ? {'stroke-dasharray':'8 6'} : {})}));
 
@@ -210,17 +210,26 @@ export class NoteRenderer {
     const marks=noteMarkLayout(entries);
     const blocks=this.blocks(entries,Math.max(width,marks.maxX),nodes.length ? Math.max(height,marks.maxY)+48 : 24);
     const byId=new Map(resources.map(resource=>[resource.id,resource]));
+    const visible=new Map(nodes.map(node=>[node.resource.id,node.resource]));
     for (let index=0;index<entries.length;index++) {
       const entry=entries[index], {note}=entry;
       const highlighted=(selectedNote===null ? noteIsRelated(entry,focus,byId) : note.number===selectedNote), dimmed=!highlighted;
       const position=marks.positions.get(note.number);
+      const owners=entry.target.kind==='item' ? [entry.target.nodeId] : entry.target.kind==='connection' ? [entry.target.edge.from.resource.id,entry.target.edge.to.resource.id] : [];
+      const attachment={'data-note-owners':JSON.stringify(owners)};
 
-      if (position) { group.append(this.badge(note,position,colors,highlighted)); }
+      if (position) { group.append(this.badge(note,position,colors,highlighted,attachment)); }
 
       const box=blocks.boxes[index];
-      group.append(this.block(note,box,colors,highlighted,dimmed));
+      group.append(this.block(note,box,colors,highlighted,dimmed,attachment));
 
-      if (position && note.connector) { connectors.append(this.connector(note,box,position,colors,highlighted)); }
+      if (position && note.connector) {
+        const owner=entry.target.kind==='connection'
+          ? (focus.primary===entry.target.edge.to.resource.id ? entry.target.edge.to.resource : entry.target.edge.from.resource)
+          : visible.get(entry.target.nodeId);
+        const color=highlighted ? owner?.color ?? colors.palette?.[owner?.type] ?? colors.muted : colors.muted;
+        connectors.append(this.connector(note,box,position,{...colors,muted:color},highlighted,attachment));
+      }
 
     }
     return {group,connectors,minX:marks.minX,minY:marks.minY,width:blocks.width,height:Math.max(height,marks.maxY,entries.length ? blocks.height : height)};

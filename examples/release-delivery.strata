@@ -3,188 +3,188 @@
 diagram "Software release and progressive delivery"
 
 app participants "People and interfaces" {
-  icon "svgs/solid/user.svg"
+  icon: "svgs/solid/user.svg"
   app developer "Developer workstation" {
-    icon "svgs/solid/code_branch.svg"
+    icon: "svgs/solid/code_branch.svg"
   }
   app reviewer "Release approval console" {
-    icon "svgs/solid/clipboard_check.svg"
+    icon: "svgs/solid/clipboard_check.svg"
   }
   app incident "Incident operations console" {
-    icon "svgs/solid/exclamation_triangle.svg"
+    icon: "svgs/solid/exclamation_triangle.svg"
   }
 }
 
 service delivery "Delivery platform" {
-  icon "svgs/solid/cogs.svg"
+  icon: "svgs/solid/cogs.svg"
   service integration "Continuous integration" {
-    icon "svgs/solid/code_branch.svg"
+    icon: "svgs/solid/code_branch.svg"
     service source "Accept reviewed revision" {
-      icon "svgs/solid/code_branch.svg"
-      description "A reviewed immutable revision is the build input. Every run records revision, configuration, and toolchain versions."
+      icon: "svgs/solid/code_branch.svg"
+      description: "A reviewed immutable revision is the build input. Every run records revision, configuration, and toolchain versions."
     }
     service tests "Compile and test" {
-      icon "svgs/solid/clipboard_check.svg"
+      icon: "svgs/solid/clipboard_check.svg"
     }
     service scan "Inspect dependencies and artifact" {
-      icon "svgs/solid/shield_alt.svg"
-      description "Release policy rejects artifacts with unresolved blocking findings. Scan reports are bound to the artifact digest."
+      icon: "svgs/solid/shield_alt.svg"
+      description: "Release policy rejects artifacts with unresolved blocking findings. Scan reports are bound to the artifact digest."
     }
     service sign "Sign release manifest" {
-      icon "svgs/solid/lock.svg"
-      description "Produces a signed manifest binding the artifact digest to test evidence, scan reports, and source revision."
+      icon: "svgs/solid/lock.svg"
+      description: "Produces a signed manifest binding the artifact digest to test evidence, scan reports, and source revision."
     }
   }
   service orchestration "Release orchestration" {
-    icon "svgs/solid/exchange_alt.svg"
+    icon: "svgs/solid/exchange_alt.svg"
     service planner "Create immutable release plan" {
-      icon "svgs/solid/file_alt.svg"
-      description "Pins artifact digest, environment, configuration version, and rollback target. New evidence requires a new plan version."
+      icon: "svgs/solid/file_alt.svg"
+      description: "Pins artifact digest, environment, configuration version, and rollback target. New evidence requires a new plan version."
     }
     service preflight "Check deployment readiness" {
-      icon "svgs/solid/clipboard_check.svg"
-      description "Checks capacity, signed provenance, compatibility, and health of the previous revision before requesting approval."
+      icon: "svgs/solid/clipboard_check.svg"
+      description: "Checks capacity, signed provenance, compatibility, and health of the previous revision before requesting approval."
     }
     service migration "Apply compatible schema expansion" {
-      icon "svgs/solid/database.svg"
-      description "Only backward-compatible expansion runs during release. Destructive cleanup is deferred until the old revision is no longer a rollback target."
+      icon: "svgs/solid/database.svg"
+      description: "Only backward-compatible expansion runs during release. Destructive cleanup is deferred until the old revision is no longer a rollback target."
     }
     service controller "Reconcile desired deployment" {
-      icon "svgs/solid/cogs.svg"
-      description "Holds one deployment lease per environment. Steps and observed results are durable; restarting a worker resumes the same plan."
+      icon: "svgs/solid/cogs.svg"
+      description: "Holds one deployment lease per environment. Steps and observed results are durable; restarting a worker resumes the same plan."
     }
     service canary "Evaluate canary health" {
-      icon "svgs/solid/search.svg"
-      description "Routes 5 percent of traffic for ten minutes. Insufficient samples keep the gate closed; a thirty-minute deadline aborts the release."
+      icon: "svgs/solid/search.svg"
+      description: "Routes 5 percent of traffic for ten minutes. Insufficient samples keep the gate closed; a thirty-minute deadline aborts the release."
     }
     service promote "Promote approved revision" {
-      icon "svgs/solid/check_circle.svg"
-      description "Advances traffic through 25, 50, and 100 percent with health gates between steps. The same artifact digest is used throughout."
+      icon: "svgs/solid/check_circle.svg"
+      description: "Advances traffic through 25, 50, and 100 percent with health gates between steps. The same artifact digest is used throughout."
     }
     service rollback "Restore previous revision" {
-      icon "svgs/solid/exchange_alt.svg"
-      description "Restores the pinned previous application and routing configuration. It does not reverse schema changes; database expansion must remain compatible."
+      icon: "svgs/solid/exchange_alt.svg"
+      description: "Restores the pinned previous application and routing configuration. It does not reverse schema changes; database expansion must remain compatible."
     }
     service notifications "Publish release status" {
-      icon "svgs/solid/bell.svg"
+      icon: "svgs/solid/bell.svg"
     }
   }
 }
 
 infrastructure runtime "Production environment" {
-  icon "svgs/solid/cloud.svg"
+  icon: "svgs/solid/cloud.svg"
   infrastructure router "Traffic router" {
-    icon "svgs/solid/exchange_alt.svg"
+    icon: "svgs/solid/exchange_alt.svg"
   }
   service stable "Previous healthy revision" {
-    icon "svgs/solid/server.svg"
+    icon: "svgs/solid/server.svg"
   }
   service candidate "Candidate revision" {
-    icon "svgs/solid/server.svg"
+    icon: "svgs/solid/server.svg"
   }
   database application_db "Application database" {
-    icon "svgs/solid/database.svg"
+    icon: "svgs/solid/database.svg"
   }
   infrastructure telemetry "Metrics, logs, and traces" {
-    icon "svgs/solid/search.svg"
-    description "Tags signals with environment, release plan, and revision so a canary can be compared with its stable baseline."
+    icon: "svgs/solid/search.svg"
+    description: "Tags signals with environment, release plan, and revision so a canary can be compared with its stable baseline."
   }
 }
 
 database control "Release records" {
-  icon "svgs/solid/database.svg"
+  icon: "svgs/solid/database.svg"
   database registry "Content-addressed artifact registry" {
-    icon "svgs/solid/box.svg"
+    icon: "svgs/solid/box.svg"
   }
   database evidence "Build evidence and provenance" {
-    icon "svgs/solid/file_alt.svg"
+    icon: "svgs/solid/file_alt.svg"
   }
   database state "Plans, leases, approvals, and audit" {
-    icon "svgs/solid/lock.svg"
+    icon: "svgs/solid/lock.svg"
   }
 }
 
 external traffic "User requests" {
-  icon "svgs/solid/globe.svg"
+  icon: "svgs/solid/globe.svg"
 }
 
-developer -> source : "1. Reviewed revision"
-source -> tests : "2. Immutable build input"
-tests -> scan : "3. Tested artifact"
-tests -> evidence : "Test reports"
-scan -> evidence : "Digest-bound findings"
-scan -> sign : "4. Policy accepted"
-sign -> registry : "5. Artifact + signed manifest"
-sign -> evidence : "Signed provenance"
-registry -> planner : "6. Select digest"
-planner -> state : "7. Persist versioned plan"
-planner -> preflight : "8. Check readiness"
-preflight -> registry : "Verify signature and digest"
-preflight -> evidence : "Verify required evidence"
-preflight -> reviewer : "9. Request plan-specific approval"
-reviewer -> state : "10. Record approval for plan version"
-reviewer -> controller : "11. Release approved plan"
-controller -> state : "12. Claim environment lease"
-controller -> migration : "13. Compatible expansion first"
-migration -> application_db : "14. Apply resumable migration"
-migration -> controller : "15. Expansion confirmed"
-controller -> candidate : "16. Deploy pinned digest"
-controller -> router : "17. Start canary at 5 percent"
-traffic -> router : "Live requests"
-router -> stable : "Stable traffic share"
-router -> candidate : "Canary traffic share"
-stable -> application_db : "Compatible schema access"
-candidate -> application_db : "Compatible schema access"
-stable -> telemetry : "Baseline signals"
-candidate -> telemetry : "Candidate signals"
-telemetry -> canary : "18. Compare revision health"
-canary -> promote : "19. Sufficient healthy samples"
-promote -> router : "20. Advance gated traffic steps"
-promote -> state : "Record promotion observations"
-promote -> notifications : "Release completed"
-canary -> rollback : "Health failure or evaluation deadline"
-controller -> rollback : "Deployment step retries exhausted"
-incident -> rollback : "Audited emergency abort"
-rollback -> router : "Restore stable routing"
-rollback -> stable : "Ensure previous digest is healthy"
-rollback -> state : "Record rollback outcome"
-rollback -> notifications : "Abort or rollback status"
-notifications -> reviewer : "Release outcome"
-telemetry -> incident : "Escalate unresolved health incident"
+developer -> source "1. Reviewed revision"
+source -> tests "2. Immutable build input"
+tests -> scan "3. Tested artifact"
+tests -> evidence "Test reports"
+scan -> evidence "Digest-bound findings"
+scan -> sign "4. Policy accepted"
+sign -> registry "5. Artifact + signed manifest"
+sign -> evidence "Signed provenance"
+registry -> planner "6. Select digest"
+planner -> state "7. Persist versioned plan"
+planner -> preflight "8. Check readiness"
+preflight -> registry "Verify signature and digest"
+preflight -> evidence "Verify required evidence"
+preflight -> reviewer "9. Request plan-specific approval"
+reviewer -> state "10. Record approval for plan version"
+reviewer -> controller "11. Release approved plan"
+controller -> state "12. Claim environment lease"
+controller -> migration "13. Compatible expansion first"
+migration -> application_db "14. Apply resumable migration"
+migration -> controller "15. Expansion confirmed"
+controller -> candidate "16. Deploy pinned digest"
+controller -> router "17. Start canary at 5 percent"
+traffic -> router "Live requests"
+router -> stable "Stable traffic share"
+router -> candidate "Canary traffic share"
+stable -> application_db "Compatible schema access"
+candidate -> application_db "Compatible schema access"
+stable -> telemetry "Baseline signals"
+candidate -> telemetry "Candidate signals"
+telemetry -> canary "18. Compare revision health"
+canary -> promote "19. Sufficient healthy samples"
+promote -> router "20. Advance gated traffic steps"
+promote -> state "Record promotion observations"
+promote -> notifications "Release completed"
+canary -> rollback "Health failure or evaluation deadline"
+controller -> rollback "Deployment step retries exhausted"
+incident -> rollback "Audited emergency abort"
+rollback -> router "Restore stable routing"
+rollback -> stable "Ensure previous digest is healthy"
+rollback -> state "Record rollback outcome"
+rollback -> notifications "Abort or rollback status"
+notifications -> reviewer "Release outcome"
+telemetry -> incident "Escalate unresolved health incident"
 
 view build "Build and release evidence" {
-  description "A reviewed revision becomes a tested, inspected, signed artifact. The release plan pins its digest and supporting evidence."
-  include developer, source, tests, scan, sign, evidence, registry, planner, state, preflight, reviewer
+  description: "A reviewed revision becomes a tested, inspected, signed artifact. The release plan pins its digest and supporting evidence."
+  include: [developer, source, tests, scan, sign, evidence, registry, planner, state, preflight, reviewer]
 }
 
 view rollout "Approved canary rollout" {
-  description "Approval is specific to a plan version. Compatible schema expansion precedes deployment; measured health gates control traffic promotion."
-  relations only
-  reviewer -> controller : "Approve immutable plan"
-  controller -> state : "Lease and durable progress"
-  controller -> migration : "Compatible expansion"
-  migration -> application_db : "Apply resumable migration"
-  migration -> controller : "Expansion complete"
-  controller -> candidate : "Deploy digest"
-  controller -> router : "5 percent canary"
-  traffic -> router : "Live requests"
-  router -> stable : "Stable baseline"
-  router -> candidate : "Candidate sample"
-  stable -> telemetry : "Baseline health"
-  candidate -> telemetry : "Candidate health"
-  telemetry -> canary : "Compare tagged observations"
-  canary -> promote : "Enough healthy samples"
-  promote -> router : "25, 50, then 100 percent"
-  promote -> notifications : "Release complete"
+  description: "Approval is specific to a plan version. Compatible schema expansion precedes deployment; measured health gates control traffic promotion."
+  relations: local
+  reviewer -> controller "Approve immutable plan"
+  controller -> state "Lease and durable progress"
+  controller -> migration "Compatible expansion"
+  migration -> application_db "Apply resumable migration"
+  migration -> controller "Expansion complete"
+  controller -> candidate "Deploy digest"
+  controller -> router "5 percent canary"
+  traffic -> router "Live requests"
+  router -> stable "Stable baseline"
+  router -> candidate "Candidate sample"
+  stable -> telemetry "Baseline health"
+  candidate -> telemetry "Candidate health"
+  telemetry -> canary "Compare tagged observations"
+  canary -> promote "Enough healthy samples"
+  promote -> router "25, 50, then 100 percent"
+  promote -> notifications "Release complete"
 }
 
 view rollback "Abort and rollback" {
-  description "An unhealthy canary or bounded deployment failure restores the previous digest and route. Compatible schema expansion is retained."
-  include canary, controller, rollback, router, stable, candidate, application_db, state, notifications, telemetry, incident
+  description: "An unhealthy canary or bounded deployment failure restores the previous digest and route. Compatible schema expansion is retained."
+  include: [canary, controller, rollback, router, stable, candidate, application_db, state, notifications, telemetry, incident]
 }
 
 view system "System overview" {
-  description "Participants, nested CI and release orchestration, production traffic, and immutable control records."
-  include participants, delivery, runtime, control, traffic
-  detail 0.65
+  description: "Participants, nested CI and release orchestration, production traffic, and immutable control records."
+  include: [participants, delivery, runtime, control, traffic]
+  detail: 0.65
 }

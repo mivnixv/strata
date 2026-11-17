@@ -1,3 +1,4 @@
+import { ItemTypes } from './items/types/types.js';
 import { themes, resolveTheme, applyTheme } from './themes/themes.js';
 import { IconLibrary } from './icons/library.js';
 import { ViewportPan } from './zoom/pan.js';
@@ -26,8 +27,8 @@ $('theme-select').onchange=()=>{
   try { localStorage.setItem('strata.theme',theme); } catch {}
   render();
 };
-const key = 'strata.source.v1';
-const starter = 'diagram "My architecture"\n\napp web "Web app"\n\nservice backend "Backend" {\n  service api "API service"\n  database db "Database"\n}\n\nweb -> api : "HTTPS"\napi -> db : "SQL"\n';
+const key = 'strata.source.v2';
+const starter = "diagram \"My architecture\"\n\napp web \"Web app\"\n\nservice backend \"Backend\" {\n  service api \"API service\"\n  database db \"Database\"\n}\n\nweb -> api \"HTTPS\"\napi -> db \"SQL\"\n";
 let model = example, perspective = 'orders', selected = null, selectedNote = null, collapsed = new Set(), zoom = 1;
 let parseTimer, toastTimer;
 let popupDismissed=false;
@@ -57,6 +58,13 @@ const renderer = new StrataDiagram($('diagram'),{
 });
 function render() {
   document.title = `${model.title} — Strata`;
+  const themeColors=resolveTheme(theme), types=new ItemTypes(model.types);
+  const palette=types.palette(themeColors.palette,themeColors.muted);
+  const legend=document.querySelector('.legend'); legend.replaceChildren();
+  for (const [name,color] of Object.entries(palette)) {
+    const entry=text('span',name), dot=document.createElement('i');
+    dot.style.background=color; entry.prepend(dot); legend.append(entry);
+  }
   const view = model.perspectives.find(p => p.id === perspective);
   const perspectives = $('perspective-select'); perspectives.replaceChildren();
   for (const view of model.perspectives) {
@@ -163,7 +171,8 @@ $('export-html').onclick = async () => {
       template = await response.text();
     }
 
-    const icons=await iconLibrary.collect(parseStrata($('source').value).resources);
+    const exportModel=parseStrata($('source').value), types=new ItemTypes(exportModel.types);
+    const icons=await iconLibrary.collect(exportModel.resources.map(resource=>types.resolve(resource)));
     const html = createOfflineHtml(template,$('source').value,{theme,perspective,collapsed:[...collapsed],detail,zoom,showNotes:$('notes').checked,showLabels:$('labels').checked,showDescriptions:$('descriptions').checked},icons);
     download('architecture.html',html,'text/html');
     notify('Offline HTML exported — open it directly in any modern browser.');

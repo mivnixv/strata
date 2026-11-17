@@ -7,7 +7,7 @@ import { NOTE_MARK_POSITIONS, itemNoteAnchor, noteMarkLayout } from './position.
 import { NoteRenderer } from './notes.js';
 import { StandaloneBuilder } from '../../cli/standalone-builder.mjs';
 
-const declarations=NOTE_MARK_POSITIONS.map((position,index)=>` note ${index+1} "${position}" position ${position} connect : "Details" dashed`).join('\n');
+const declarations=NOTE_MARK_POSITIONS.map((position,index)=>` note ${index+1} "${position}" { position: ${position}; connector { label: "Details"; line: dashed } }`).join('\n');
 const source=`service parent "Parent" {\n service api "API" {\n${declarations}\n }\n}`;
 
 test('item mark positions round-trip through source, JSON and collapsed groups',()=>{
@@ -42,7 +42,7 @@ test('marks stack along the selected edge and outward without overlapping',()=>{
 });
 
 test('note scene includes outer marks in its bounds and places notebook blocks below them',()=>{
-  const node={x:0,y:0,w:100,h:100};
+  const node={x:0,y:0,w:100,h:100,resource:{id:'a',type:'service'}};
   const entries=Array.from({length:20},(_,index)=>({note:{number:index+1,text:'Note',fontSize:14},anchor:itemNoteAnchor(node,'bottom-left'),target:{kind:'item',resourceId:'a',nodeId:'a'}}));
   const el=(tag,attrs={},text)=>({tag,attrs,text,children:[],append(...children){this.children.push(...children);}});
   const scene=new NoteRenderer(el,text=>text.length*8).render(entries,{width:700,height:120,nodes:[node]},{muted:'#aaa',text:'#fff',tile:'#000'});
@@ -53,10 +53,11 @@ test('note scene includes outer marks in its bounds and places notebook blocks b
 });
 
 test('invalid positions, repeated options, and positioning unattached or connection notes are rejected',()=>{
-  for (const option of ['position','position nowhere','position top position left']) {
-    assert.throws(()=>parseStrata(`service a "A" {\n note 1 "Note" ${option}\n}`));
+  for (const option of ['position:','position: nowhere','position: top; position: left']) {
+    assert.throws(()=>parseStrata(`service a "A" {
+ note 1 "Note" { ${option} }\n}`));
   }
-  for (const declaration of ['note 1 "General" position top','view v "View" {\n note 1 "View" position left\n}','service a "A"\nservice b "B"\na -> b note 1 "Edge" position right']) {
+  for (const declaration of ["note 1 \"General\" {\n  position: top\n}","view v \"View\" {\n note 1 \"View\" {\n   position: left\n }\n}","service a \"A\"\nservice b \"B\"\na -> b {\n  note 1 \"Edge\" {\n    position: right\n  }\n}"]) {
     assert.throws(()=>parseStrata(declaration),/position.*only.*item/);
   }
   const model=parseStrata(source);

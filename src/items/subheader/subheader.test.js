@@ -7,9 +7,9 @@ import { ItemSubheader } from './subheader.js';
 import { StandaloneBuilder } from '../../../cli/standalone-builder.mjs';
 
 const source=`service parent "Parent" {
- subheader "Commerce boundary"
+ subheader: "Commerce boundary"
  service api "API" {
-  subheader "Request processing"
+  subheader: "Request processing"
  }
 }
 database db "Database"`;
@@ -21,17 +21,17 @@ test('subheaders round-trip through text and JSON without adding type labels',()
   assert.equal(model.resources[2].subheader,'');
   assert.deepEqual(parseStrata(formatStrata(model)),model);
   assert.deepEqual(validateModel(JSON.parse(JSON.stringify(model))),model);
-  const leaf=parseStrata('service api "API" {\n subheader "Leaf-only block"\n}');
+  const leaf=parseStrata("service api \"API\" {\n subheader: \"Leaf-only block\"\n}");
   assert.deepEqual(parseStrata(formatStrata(leaf)),leaf);
 });
 
-test('subheader validation rejects invalid JSON, unquoted text and wrong scope',()=>{
+test("subheader: validation rejects invalid JSON , unquoted text and wrong scope",()=>{
   const model=parseStrata(source);
   for (const subheader of [null,1,{},'x'.repeat(501)]) {
     const invalid=structuredClone(model); invalid.resources[0].subheader=subheader;
     assert.throws(()=>validateModel(invalid),/subheader/);
   }
-  for (const value of ['subheader "Outside"','view a "A" {\n subheader "View"\n}','service api "API" {\n subheader Unquoted\n}']) {
+  for (const value of ["subheader: \"Outside\"","view a \"A\" {\n subheader: \"View\"\n}","service api \"API\" {\n subheader: Unquoted\n}"]) {
     assert.throws(()=>parseStrata(value));
   }
 });

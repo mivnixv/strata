@@ -4,7 +4,7 @@ import { DiagramMotion, FrameAnimation } from '../motion.js';
 
 /** Only the SVG operations exercised by note opacity transitions. */
 class NoteMotionElement {
-  constructor(attributes={},content='') { this.values=new Map(Object.entries(attributes)); this.innerHTML=content; this.children=[]; }
+  constructor(attributes={},content='',tag='g') { this.values=new Map(Object.entries(attributes)); this.innerHTML=content; this.children=[]; this.tagName=tag; }
   get attributes() { return [...this.values].map(([name,value])=>({name,value:String(value)})); }
   get childElementCount() { return this.children.length; }
   hasAttribute(name) { return this.values.has(name); }
@@ -21,7 +21,7 @@ class NoteMotionElement {
     for (let index=0;index<queue.length;index++) {
       const child=queue[index];
 
-      if (names.some(name=>child.hasAttribute(name))) { matches.push(child); }
+      if (names.some(name=>child.hasAttribute(name)) || selector.split(',').includes(child.tagName)) { matches.push(child); }
 
       queue.push(...child.children);
     }
@@ -49,7 +49,17 @@ function animationFixture(t,{reduced=false}={}) {
     }
     return svg;
   };
-  return {motion,scene,frames,tick:at=>{
+  const item=(svg,id,{x=100,depth=0,parent=null}={})=>{
+    const node=new NoteMotionElement({'data-resource':id,'data-depth':depth,'data-parent':parent,opacity:1});
+    node.append(new NoteMotionElement({x,y:100,width:200,height:120},'','rect')); svg.append(node);
+    return node;
+  };
+  const owners=(svg,ids)=>{
+    for (const child of svg.children.filter(child=>child.hasAttribute('data-note') || child.hasAttribute('data-note-text') || child.hasAttribute('data-note-connector'))) {
+      child.setAttribute('data-note-owners',JSON.stringify(ids));
+    }
+  };
+  return {motion,scene,item,owners,frames,tick:at=>{
     time=at; const callbacks=[...frames.values()]; frames.clear();
     for (const callback of callbacks) { callback(at); }
   }};
@@ -122,4 +132,46 @@ test('rapid note transitions resume current opacity and exports settle all notes
   assert.deepEqual(next.children.map(element=>Number(element.getAttribute('opacity'))),[.25,1,.25]);
   assert.equal(f.frames.size,0);
   assert.equal(next.hasAttribute('data-animating'),false);
+});
+
+test('moved notes fade in with persistent items instead of waiting for the final phase',t=>{
+  const f=animationFixture(t), before=f.scene(), after=f.scene('moved');
+  f.item(before,'api'); f.item(after,'api',{x:200});
+  f.owners(before,['api']); f.owners(after,['api']);
+  const notes=after.children.slice(0,3);
+  f.motion.transition(before,after,{duration:400});
+  f.tick(80);
+  assert.ok(notes.every(note=>Number(note.getAttribute('opacity'))>0));
+  f.motion.finish();
+  assert.deepEqual(notes.map(note=>Number(note.getAttribute('opacity'))),[.25,1,.25]);
+});
+
+test('initial marks, blocks, and connectors share their nested item entry delay',t=>{
+  const f=animationFixture(t), next=f.scene(), notes=[...next.children];
+  const item=f.item(next,'api',{depth:2}); f.owners(next,['api']);
+  f.motion.transition(null,next,{duration:400});
+  f.tick(18);
+  assert.equal(item.getAttribute('opacity'),'0');
+  assert.ok(notes.every(note=>note.getAttribute('opacity')==='0'));
+  f.tick(100);
+  const progress=Number(item.getAttribute('opacity'));
+  assert.ok(progress>0);
+  notes.forEach((note,index)=>assert.equal(Number(note.getAttribute('opacity'))/[.25,1,.25][index],progress));
+  f.motion.finish();
+});
+
+test('expanding a new item reveals its notes on the same animation frame',t=>{
+  const f=animationFixture(t), before=f.scene(), after=f.scene('expanded');
+  before.children=[]; f.item(before,'parent'); f.item(after,'parent',{x:200});
+  const notes=after.children.slice(0,3), item=f.item(after,'api',{depth:1,parent:'parent'});
+  f.owners(after,['api']);
+  f.motion.transition(before,after,{duration:400});
+  f.tick(400);
+  assert.equal(item.getAttribute('opacity'),'0');
+  assert.ok(notes.every(note=>note.getAttribute('opacity')==='0'));
+  f.tick(720);
+  const progress=Number(item.getAttribute('opacity'));
+  assert.ok(progress>0 && progress<1);
+  notes.forEach((note,index)=>assert.equal(Number(note.getAttribute('opacity'))/[.25,1,.25][index],progress));
+  f.motion.finish();
 });

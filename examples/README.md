@@ -6,6 +6,7 @@ and workflow intent; Strata does not execute these workflows.
 
 | Example | Workflow | Views |
 | --- | --- | --- |
+| [Language tour](language-tour.strata) | Type defaults, overrides, inline blocks, endpoint symbols, notes, and view scopes | Overview, focused |
 | [Subscription lifecycle](subscription-lifecycle.strata) | Enrollment, payment callbacks, tenant activation, renewal, cancellation, and compensation | Enrollment, renewal, recovery, overview |
 | [Data pipeline](data-pipeline.strata) | Event admission, immutable archiving, enrichment, quality gates, publication, late arrivals, and replay | Pipeline, corrections, failures, consumption, overview |
 | [Release delivery](release-delivery.strata) | Tested and signed artifacts, approval, compatible migrations, canary promotion, and rollback | Build, rollout, rollback, overview |

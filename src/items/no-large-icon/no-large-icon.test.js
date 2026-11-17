@@ -7,10 +7,10 @@ import { tileIconPlacement } from '../../icons/tile-icon.js';
 import { StandaloneBuilder } from '../../../cli/standalone-builder.mjs';
 
 const source=`service parent "Parent" {
- noLargeIcon
+ large-icon: false
  service api "API" {
-  icon "svgs/solid/server.svg"
-  noLargeIcon
+  icon: "svgs/solid/server.svg"
+  large-icon: false
  }
 }
 database db "Database"`;
@@ -23,7 +23,7 @@ test('noLargeIcon round-trips while preserving the small header icon',()=>{
   assert.equal(model.resources[1].noLargeIcon,true);
   assert.equal(model.resources[1].icon,'svgs/solid/server.svg');
   assert.equal(model.resources[2].noLargeIcon,false);
-  const onlyOption=parseStrata('service api "API" {\n noLargeIcon\n}');
+  const onlyOption=parseStrata("service api \"API\" {\n large-icon: false\n}");
   assert.deepEqual(parseStrata(formatStrata(onlyOption)),onlyOption);
 });
 
@@ -42,7 +42,7 @@ test('noLargeIcon rejects non-booleans and declarations outside item blocks',()=
     const invalid=structuredClone(model); invalid.resources[0].noLargeIcon=noLargeIcon;
     assert.throws(()=>validateModel(invalid),/noLargeIcon.*boolean/);
   }
-  for (const declaration of ['noLargeIcon','view a "A" {\n noLargeIcon\n}','service api "API" {\n noLargeIcon true\n}']) {
+  for (const declaration of ["large-icon: false","view a \"A\" {\n large-icon: false\n}","service api \"API\" {\n large-icon: invalid\n}"]) {
     assert.throws(()=>parseStrata(declaration));
   }
 });

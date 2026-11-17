@@ -13,10 +13,10 @@ const source=`group backend "Backend" {
  database db "Database"
 }
 group empty "Empty"
-backend -> empty : "Context"
-api -> db : "SQL"
+backend -> empty "Context"
+api -> db "SQL"
 view all "All" {
- include backend, empty
+ include: [backend, empty]
 }`;
 
 test('group declarations round-trip through text and JSON, including empty groups',()=>{

@@ -5,7 +5,7 @@ import { DiagramLayout, validateModel } from '../../framework.js';
 import { containerStroke } from './style.js';
 
 test('dashed resource borders survive source, JSON, and collapsed layouts',()=>{
-  const model=parseStrata('service group "Group" {\n dashed\n service child "Child"\n}');
+  const model=parseStrata("service group \"Group\" {\n line: dashed\n service child \"Child\"\n}");
   assert.deepEqual(parseStrata(formatStrata(model)),model);
   assert.equal(new DiagramLayout(model).create('all',new Set(['group'])).nodes[0].resource.dashed,true);
   assert.deepEqual(containerStroke(model.resources[0]),{'stroke-dasharray':'8 6'});
@@ -14,5 +14,5 @@ test('dashed resource borders survive source, JSON, and collapsed layouts',()=>{
     const invalid=structuredClone(model); invalid.resources[0].dashed=dashed;
     assert.throws(()=>validateModel(invalid),/dashed.*boolean/);
   }
-  assert.throws(()=>parseStrata('dashed'));
+  assert.throws(()=>parseStrata("line: dashed"));
 });

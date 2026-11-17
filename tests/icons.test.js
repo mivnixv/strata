@@ -5,8 +5,9 @@ import { IconLibrary,iconId } from '../src/icons/library.js';
 import { parseStrata,formatStrata } from '../src/language.js';
 import { createOfflineHtml } from '../standalone/offline-export.js';
 const id='brands/brands_s/stripe_icon.svg';
-const source=`external payments "Payments" {\n icon "${id}"\n}`;
-test('icon paths survive parsing and formatting',()=>{
+const source=`external payments "Payments" {
+ icon: "${id}"\n}`;
+test("icon paths survive parsing and formatting",()=>{
  const model=parseStrata(source);
  assert.equal(model.resources[0].icon,id);
  assert.deepEqual(parseStrata(formatStrata(model)),model);

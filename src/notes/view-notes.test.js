@@ -7,28 +7,43 @@ import { noteSelectionFocus } from './selection.js';
 import { StandaloneBuilder } from '../../cli/standalone-builder.mjs';
 
 const source=`note 1 "Global context"
-note 8 "Global database note" on db
+note 8 "Global database note" {
+  on: db
+}
 service parent "Parent" {
  service api "API" {
   note 2 "Global item note"
  }
 }
 database db "Database"
-api -> db : "SQL" note 3 "Global connection note"
+api -> db "SQL" {
+  note 3 "Global connection note"
+}
 view checkout "Checkout" {
- include api, db
- note 4 "Checkout item note" on api position right connect : "Checkout" dashed
+ include: [api, db]
+ note 4 "Checkout item note" {
+   on: api
+   position: right
+   connector {
+     label: "Checkout"
+     line: dashed
+   }
+ }
  note 5 "Checkout context"
- api -> db : "SQL" note 6 "Checkout connection note"
+ api -> db "SQL" {
+   note 6 "Checkout connection note"
+ }
 }
 view other "Other" {
- include api, db
+ include: [api, db]
 }
 view scoped "Scoped" {
- note 7 "Only this view's item" on api
+ note 7 "Only this view's item" {
+   on: api
+ }
 }
 view data "Data" {
- include db
+ include: [db]
 }`;
 const numbers=layout=>layout.notes.map(entry=>entry.note.number);
 
@@ -64,16 +79,16 @@ test('scoped item note options round-trip in any order through source and JSON',
   const model=parseStrata(source);
   assert.deepEqual(parseStrata(formatStrata(model)),model);
   assert.deepEqual(validateModel(JSON.parse(JSON.stringify(model))),model);
-  const reordered=parseStrata('service api "API"\nview a "A" {\n note 1 "Note" position bottom fontSize 18 connect solid on api\n}');
+  const reordered=parseStrata("service api \"API\"\nview a \"A\" {\n note 1 \"Note\" {\n   on: api\n   position: bottom\n   font-size: 18\n   connector {}\n }\n}");
   assert.equal(reordered.perspectives[0].notes[0].resource,'api');
   assert.equal(reordered.perspectives[0].notes[0].position,'bottom');
 });
 
 test('invalid or ambiguous item attachments and duplicate numbers are rejected',()=>{
-  for (const declaration of ['note 1 "Note" on','note 1 "Note" on missing','note 1 "Note" on api on api','service api "API" {\n note 1 "Note" on api\n}','service api "API"\nservice db "DB"\napi -> db note 1 "Note" on api']) {
+  for (const declaration of ['note 1 "Note" on',"note 1 \"Note\" {\n  on: missing\n}",'note 1 "Note" on api on api',"service api \"API\" {\n note 1 \"Note\" {\n   on: api\n }\n}","service api \"API\"\nservice db \"DB\"\napi -> db {\n  note 1 \"Note\" {\n    on: api\n  }\n}"]) {
     assert.throws(()=>parseStrata(declaration));
   }
-  assert.throws(()=>parseStrata(source+'\nview duplicate "Duplicate" {\n note 4 "Duplicate" on db\n}'),/Duplicate note/);
+  assert.throws(()=>parseStrata(source+"\nview duplicate \"Duplicate\" {\n note 4 \"Duplicate\" {\n   on: db\n }\n}"),/Duplicate note/);
   const model=parseStrata(source);
   for (const resource of [42,{},'missing']) {
     const invalid=structuredClone(model); invalid.perspectives[0].notes[0].resource=resource;

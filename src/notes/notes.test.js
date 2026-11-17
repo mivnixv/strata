@@ -14,14 +14,21 @@ service group "Group" {
   }
 }
 database db "Database"
-api -> db : "Query" dashed note 4 "Connection note" note 5 "Another note"
+api -> db "Query" {
+  line: dashed
+  note 4 "Connection note"
+  note 5 "Another note"
+}
 view all "All" {
-  include group, db
+  include: [group, db]
   note 6 "View note"
-  api -> db : "Query" dashed note 7 "Local annotation"
+  api -> db "Query" {
+    line: dashed
+    note 7 "Local annotation"
+  }
 }
 view other "Other" {
-  include db
+  include: [db]
 }`;
 
 test('all note attachment scopes round-trip through source and JSON',()=>{
@@ -29,6 +36,20 @@ test('all note attachment scopes round-trip through source and JSON',()=>{
   assert.deepEqual(parseStrata(formatStrata(model)),model);
   assert.deepEqual(validateModel(JSON.parse(JSON.stringify(model))),model);
   assert.equal(model.relations[0].notes.length,2);
+});
+
+test('marks, blocks, and connectors identify their visible item owners for synchronized motion',()=>{
+  const model=parseStrata('group parent "Parent" { service api "API" { note 1 "Item" { connector {} } } }\nservice db "DB"\napi -> db { note 2 "Connection" { connector {} } }\nnote 3 "General"');
+  const el=(tag,attrs={},text)=>({tag,attrs,text,children:[],append(...children){this.children.push(...children);}});
+  for (const collapsed of [new Set(),new Set(['parent'])]) {
+    const layout=new DiagramLayout(model).create('all',collapsed);
+    const scene=new NoteRenderer(el,text=>text.length*8).render(layout.notes,layout,{tile:'#000',muted:'#aaa',text:'#fff'},{resources:model.resources});
+    const owner=collapsed.size ? 'parent' : 'api';
+    for (const group of [...scene.group.children,...scene.connectors.children]) {
+      const number=Number(group.attrs['data-note'] ?? group.attrs['data-note-text'] ?? group.attrs['data-note-connector']);
+      assert.deepEqual(JSON.parse(group.attrs['data-note-owners']),number===1 ? [owner] : number===2 ? [owner,'db'] : []);
+    }
+  }
 });
 
 test('visible notes follow views, collapsed descendants and merged relationships',()=>{
@@ -49,8 +70,8 @@ test('rejects malformed, duplicate, oversized and over-budget notes',()=>{
   }
   assert.throws(()=>parseStrata(source+'\nnote 2 "Duplicate"'),/Duplicate note/);
   assert.throws(()=>validateModel({...model,notes:Array.from({length:NOTE_LIMIT+1},(_,i)=>({number:i+1,text:'Note'}))}),/at most/);
-  for (const suffix of ['note 1','note 1 "x" extra','note 0 "x"','note nope "x"']) {
-    assert.throws(()=>parseStrata('service a "A"\nservice b "B"\na -> b '+suffix));
+  for (const suffix of ['note 1','note 1 "x" extra','note 0 "x"',"note NaN \"x\""]) {
+    assert.throws(()=>parseStrata("service a \"A\"\nservice b \"B\"\na -> b"+suffix));
   }
 });
 
@@ -94,14 +115,14 @@ test('collapsed context does not reveal notes on siblings excluded from the view
  }
 }
 view scoped "Scoped" {
- include included
+ include: [included]
 }`);
   const layout=new DiagramLayout(model).create('scoped',new Set(['parent']));
   assert.deepEqual(layout.notes.map(entry=>entry.note.number),[1]);
 });
 
 test('note remains a valid resource identifier in arrows',()=>{
-  const model=parseStrata('service note "Note service"\nservice db "DB"\nnote -> db\ndb -> note note 1 "Return"');
+  const model=parseStrata("service note \"Note service\"\nservice db \"DB\"\nnote -> db\ndb -> note {\n  note 1 \"Return\"\n}");
   assert.equal(model.relations.length,2);
   assert.deepEqual(parseStrata(formatStrata(model)),model);
 });
@@ -168,13 +189,35 @@ test('notebook blocks wrap after eight entries and align row heights',()=>{
 
 test('labelled solid and dashed note connectors round-trip on items and relations',async()=>{
   const source=`service api "API" {
- note 1 "Item note" connect : "Explanation" dashed
- note 2 "Solid note" connect solid
+ note 1 "Item note" {
+   connector {
+     label: "Explanation"
+     line: dashed
+   }
+ }
+ note 2 "Solid note" {
+   connector {}
+ }
 }
 database db "DB"
-api -> db note 3 "Edge note" connect : "Query context" solid note 4 "Another" connect dashed
+api -> db {
+  note 3 "Edge note" {
+    connector {
+      label: "Query context"
+    }
+  }
+  note 4 "Another" {
+    connector {
+      line: dashed
+    }
+  }
+}
 view local "Local" {
- api -> db note 5 "Local edge" connect
+ api -> db {
+   note 5 "Local edge" {
+     connector {}
+   }
+ }
 }`;
   const model=parseStrata(source);
   assert.deepEqual(parseStrata(formatStrata(model)),model);
@@ -192,13 +235,13 @@ test('invalid connectors and connectors without marks are rejected',()=>{
     const invalid=structuredClone(model); invalid.resources[0].notes[0].connector=connector;
     assert.throws(()=>validateModel(invalid),/connector/);
   }
-  for (const source of ['note 1 "No mark" connect','view a "A" {\n note 1 "No mark" connect\n}','service api "API" {\n note 1 "Bad" connect : dashed\n}','service api "API" {\n note 1 "Bad" connect dotted\n}']) {
+  for (const source of ["note 1 \"No mark\" {\n  connector {}\n}","view a \"A\" {\n note 1 \"No mark\" {\n   connector {}\n }\n}",'service api "API" {\n note 1 "Bad" connect : dashed\n}','service api "API" {\n note 1 "Bad" connect dotted\n}']) {
     assert.throws(()=>parseStrata(source));
   }
 });
 
 test('connectors end at actual mark positions and hide with note blocks',()=>{
-  const model=parseStrata('service api "API" {\n note 1 "One" connect : "Label" dashed\n note 2 "Two" connect solid\n}');
+  const model=parseStrata("service api \"API\" {\n note 1 \"One\" {\n   connector {\n     label: \"Label\"\n     line: dashed\n   }\n }\n note 2 \"Two\" {\n   connector {}\n }\n}");
   const layout=new DiagramLayout(model).create('all');
   const el=(tag,attrs={},text)=>({tag,attrs,text,children:[],append(...children){this.children.push(...children);}});
   const renderer=new NoteRenderer(el,text=>text.length*8), colors={tile:'#000',muted:'#aaa',text:'#fff',canvas:'#000',palette:{app:'#abc'}};
@@ -231,14 +274,30 @@ test('connectors end at actual mark positions and hide with note blocks',()=>{
 });
 
 test('arbitrary positive note font sizes round-trip in all scopes and option orders',()=>{
-  const source=`note 1 "General" fontSize 12.5
+  const source=`note 1 "General" {
+  font-size: 12.5
+}
 service api "API" {
- note 2 "Large" fontSize 48 connect dashed
+ note 2 "Large" {
+   font-size: 48
+   connector {
+     line: dashed
+   }
+ }
 }
 database db "DB"
-api -> db note 3 "Small" connect : "Details" solid fontSize 7.25
+api -> db {
+  note 3 "Small" {
+    font-size: 7.25
+    connector {
+      label: "Details"
+    }
+  }
+}
 view all "All" {
- note 4 "View" fontSize 100
+ note 4 "View" {
+   font-size: 100
+ }
 }`;
   const model=parseStrata(source);
   assert.deepEqual(parseStrata(formatStrata(model)),model);
@@ -248,7 +307,7 @@ view all "All" {
   assert.equal(model.relations[0].notes[0].fontSize,7.25);
   assert.equal(model.perspectives[0].notes[0].fontSize,100);
   assert.equal(parseStrata('note 1 "Default"').notes[0].fontSize,14);
-  assert.equal(parseStrata(formatStrata(parseStrata('note 1 "Explicit" fontSize 16'))).notes[0].fontSize,16);
+  assert.equal(parseStrata(formatStrata(parseStrata("note 1 \"Explicit\" {\n  font-size: 16\n}"))).notes[0].fontSize,16);
 });
 
 test('invalid and repeated font sizes are rejected at import and source boundaries',()=>{
@@ -256,8 +315,8 @@ test('invalid and repeated font sizes are rejected at import and source boundari
   for (const fontSize of [0,-1,NaN,Infinity,null,'24',{}]) {
     assert.throws(()=>validateModel({...model,notes:[{number:1,text:'Note',fontSize}]}),/fontSize/);
   }
-  for (const suffix of ['fontSize','fontSize nope','fontSize 0','fontSize 24 fontSize 30']) {
-    assert.throws(()=>parseStrata('note 1 "Note" '+suffix));
+  for (const suffix of ['font-size:','font-size: nope','font-size: 0','font-size: 24; font-size: 30']) {
+    assert.throws(()=>parseStrata('note 1 "Note" { '+suffix+' }'));
   }
 });
 

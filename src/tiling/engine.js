@@ -1,6 +1,7 @@
 import { DependencyGrid } from '../routing.js';
 import { TileAllocation } from './allocation.js';
 import { tileOptions } from './options.js';
+import { ENDPOINT_LABEL_PORT_GAP } from '../connections/endpoints/labels.js';
 
 /** Bottom-up minimum/weight calculation followed by top-down rectangle allocation. */
 export class HierarchicalTiles {
@@ -10,8 +11,12 @@ export class HierarchicalTiles {
     const ordered = [...resources.values()].filter(r => visible.has(r.id));
     const dependencyGrid = new DependencyGrid(resources,relations.filter(e => visible.has(e.from) && visible.has(e.to)));
     const degree = new Map([...resources.values()].map(r => [r.id,0]));
+    const labeled=new Set();
     for (const edge of relations.filter(e => visible.has(e.from) && visible.has(e.to))) {
       degree.set(edge.from,degree.get(edge.from)+1); degree.set(edge.to,degree.get(edge.to)+1);
+
+      if (edge.startLabel || edge.endLabel) { labeled.add(edge.from); labeled.add(edge.to); }
+
     }
     for (let pass = 0; pass <= this.maxDepth; pass++) {
       for (const r of ordered) {
@@ -20,7 +25,11 @@ export class HierarchicalTiles {
 
         const list = collapsed.has(r.id) ? [] : children.get(r.id) ?? [];
 
-        if (!list.length) { sizes.set(r.id,{w:240+Math.min(120,degree.get(r.id)*8),h:Math.max(120+degree.get(r.id)*4,64+degree.get(r.id)*14),weight:1+degree.get(r.id)*.25}); continue; }
+        if (!list.length) {
+          const count=degree.get(r.id);
+          const labelHeight=labeled.has(r.id) ? 24+(count+1)*ENDPOINT_LABEL_PORT_GAP : 0;
+          sizes.set(r.id,{w:240+Math.min(120,count*8),h:Math.max(120+count*4,64+count*14,labelHeight),weight:1+count*.25}); continue;
+        }
         if (list.every(c => sizes.has(c.id))) {
           const options=tileOptions(r,view);
           const degrees=list.map(c=>degree.get(c.id));

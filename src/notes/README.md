@@ -1,184 +1,87 @@
 # Numbered notes
 
+Notes can be standalone, attached to an item/connection, or scoped to a view.
+
 ```text
-note 1 "General architecture context"
+note 1 "General explanation"
 service api "API" {
-  note 2 "This item owns request validation"
+  note 2 "Keep request IDs." {
+    position: top-right
+    font-size: 18
+    connector { label: "Retry contract"; line: dashed }
+  }
 }
 database db "Database"
-api -> db : "Query" dashed note 3 "Queries use a read replica"
-
-view operations "Operations" {
-  include api, db
-  note 4 "This note appears only in Operations"
-  db -> api note 5 "View-local connection note"
-}
-```
-
-Notes work on items (including containers), connections, or independently at the
-model/view level. Multiple notes can follow a connection. Numbers are explicitly
-assigned positive safe integers, unique across the entire model. Up to 1,000 notes
-are supported, each with nonempty text of at most 5,000 characters. Strings use
-JSON escaping; `\n` creates a line break.
-
-Item badges default to the top-left of their item; connection badges remain by their
-connection. Each number has its own dashed circle. Blocks and badges are dim until their
-item or connection is related to the selection and **Show notes** is enabled.
-Selecting an item highlights its own notes, descendant notes when selecting a
-group, and its direct connection notes. Unrelated badges and note text dim.
-
-**Show notes** controls notebook blocks, numbered marks, and note connectors.
-Unchecking it hides all three. The checkbox state persists in offline HTML.
-Notes appear as ruled notebook blocks, sorted by number, with eight blocks per
-row. Every block occupies one of eight equal columns, even in partially filled
-rows; blocks never stretch to fill unused columns. Rows use the height of their tallest block; full text wraps inside each page. General notes appear in all
-views; view notes appear only in their view. Attached notes follow visibility.
-Collapsed descendants roll item badges up to their collapsed ancestor; bundled
-connections retain every note. Internal connections hidden by collapse hide their
-notes until expanded. Duplicate edges merge their notes. Multiple notes use individual circles stacked along their selected edge; hovering shows each
-note's full text.
-
-JSON uses an optional `notes: [{"number": 1, "text": "Context"}]` array on the
-model, resources, relations, and perspectives. Formatting, source/JSON import,
-SVG export, CLI builds, and offline HTML preserve notes. Note-only diagrams work
-without resources. Note text is rendered as text, never evaluated as markup.
-
-
-## Connect a note block to its mark
-
-Connectors are optional per attached note:
-
-```text
-service api "API" {
-  note 1 "Validates requests" connect : "Validation" dashed
-  note 2 "Preserves request IDs" connect : "Logging" solid
-  note 3 "No connector"
-}
-database db "Database"
-api -> db note 4 "Uses a replica" connect dashed
-```
-
-Append `connect`, optionally `: "Label"`, then `dashed` or `solid`. The default
-connector style is solid. This works for item notes and global/view-local
-connection notes. General notes have no mark and reject `connect`.
-
-JSON accepts `"connector": {"label": "Validation", "dashed": true}` on a note.
-Omission or `null` disables the connector. Labels allow at most 500 characters;
-`dashed` must be a boolean. Lines attach to the actual mark, including when
-collapsed items collect several marks. Lines and labels use 25% opacity by default and 50% opacity when related to
-the selected item. Unrelated connectors remain at 25%; connectors hide when
-**Show notes** is unchecked. SVG and offline HTML preserve blocks,
-labels, and line styles. Connectors are annotation lines and do not participate
-in architecture relationship routing.
-
-Selection changes note opacity only. Marks, blocks, connector lines, and labels
-keep their normal theme colors; selection does not apply an accent color.
-
-
-## Note font size
-
-Append `fontSize` with any positive finite size in SVG pixels, including decimals:
-
-```text
-note 1 "Small general note" fontSize 12.5
-service api "API" {
-  note 2 "Larger explanation" fontSize 28
-  note 3 "Large connected note" fontSize 40 connect : "Details" dashed
-}
-```
-
-The default is 14. `fontSize` can appear before or after `connect`. JSON uses
-`"fontSize": 28` on the note. Text wrapping, ruled line spacing, and block heights
-follow the chosen size; blocks widen when needed to fit individual characters.
-Numbered marks and connector labels retain their existing sizes. Source, SVG,
-and offline exports preserve the chosen size.
-
-
-## Animation
-
-Notebook blocks, numbered marks, and connectors share the diagram animation
-clock. They fade in on initial load and when appearing, fade out when removed,
-and crossfade when content or geometry changes. Selection opacity changes fade
-smoothly. Reduced-motion preferences and disabled animation apply the final
-state immediately. SVG export settles pending animations before serialization.
-
-
-## Focus one note
-
-Click a numbered mark or notebook block to focus that specific note and its
-attached item or connection. Other notes on the same item also dim. Connection
-notes keep their connection endpoints visible; standalone notes dim all diagram
-items. Collapsed item notes focus their visible collapsed owner. Marks and blocks
-also support Enter and Space. Marks and blocks are available when **Show notes** is enabled. Click empty canvas or press Escape to clear note focus; selecting an
-item returns to normal item selection.
-
-
-## Item mark position
-
-Item and container notes accept a `position` option; the default is `top-left`:
-
-```text
-service api "API" {
-  note 1 "Default top-left mark"
-  note 2 "Mark on the right" position right
-  note 3 "Mark below the item" position bottom-left connect : "Details" dashed
-}
-```
-
-Positions: `top-left`, `top`, `top-right`, `right`, `bottom-right`, `bottom`,
-`bottom-left`, and `left`. JSON uses `"position": "top-right"` on an item note.
-The option can appear before or after `fontSize` and `connect`.
-
-Marks sit just outside the chosen edge or corner. Multiple marks sharing a
-position stack along that edge, then outward. Collapsed descendant marks use
-their chosen position on the visible collapsed item. Note connectors follow the
-actual mark position. SVG bounds include outer marks, and exports preserve the
-setting. General and connection notes do not accept item mark positions.
-
-
-## View-specific notes alongside global notes
-
-Keep notes in item blocks or at the top level for global explanations. Add a
-note inside a view to scope it to that view. Use `on ITEM_ID` to attach it to an
-existing item without moving or replacing that item's global notes:
-
-```text
-note 1 "Global context"
-service api "API" {
-  note 2 "Global API explanation"
+api -> db "Query" {
+  note 3 "Read-only." { connector {} }
 }
 view checkout "Checkout" {
-  note 3 "Checkout-only API detail" on api position right connect dashed
-  note 4 "Checkout-only standalone context"
-}
-view operations "Operations" {
-  include api
+  include: [api, db]
+  note 4 "Checkout-only detail." { on: api; position: left }
 }
 ```
 
-Checkout shows notes 1–4; Operations shows notes 1–2. Item-targeted view notes
-include their target and ancestor context automatically. If a view has no
-explicit `include`, local connection endpoints and note targets determine its
-membership; views with neither still infer membership from globals. Global
-item/connection notes remain visible whenever their attachment participates.
+## Properties
 
-To annotate a connection only in one view, declare that connection inside the
-view with its note. An identical inherited/global connection merges with it,
-retaining both global and local notes.
+- `on: ID` attaches a document/view note to an existing item. It is unavailable
+  inside item and connection notes, which already have a target.
+- `position: top-left` places an item mark. Values: `top-left`, `top`,
+  `top-right`, `right`, `bottom-right`, `bottom`, `bottom-left`, `left`.
+  Default: `top-left`. Only item attachments accept positions.
+- `font-size: 12.5` sets positive finite text size in SVG pixels. Default: 14.
+- `connector {}` enables an unlabeled solid annotation line.
+- `connector { label: "Details"; line: dashed }` adds a label and dashed line.
+  Connector `line` is `solid` or `dashed`; default is `solid`.
 
-`on` may be combined with the other note options in any order. It is valid on
-model/view-level notes; notes already inside an item or attached to an arrow
-cannot specify another attachment. JSON uses `"resource": "api"` on a model- or
-view-level note. References must resolve to existing resource IDs. Note numbers
-remain unique across the entire diagram, including across views. Formatting,
-SVG, and offline HTML retain scope, attachment, and global notes.
+Omit `connector` for just the mark and note. Unattached notes cannot have
+connectors or mark positions. Properties and connector blocks can appear in any
+order. Duplicates and unknown properties are errors.
 
+Numbers must be unique positive safe integers across the entire diagram.
+At most 1,000 notes are allowed; each text contains 1–5,000 characters. Connector
+labels are limited to 500 characters. Strings use JSON escapes; `\n` inserts a
+line break. Text is rendered as text, not HTML.
 
-### Try the bundled example
+## Scope and visibility
 
-In [`src/example.strata`](../example.strata), compare **Order lifecycle** and
-**Browse & checkout**. Global order notes 3–4 remain in both. Note 9 attaches to
-the order item only in Order lifecycle; note 13 attaches to that same item only
-in Browse & checkout. The checkout payment connection displays global note 7
-and local note 14 together, on one merged connection. Enable **Show notes** and
-select the item or individual note to inspect the differences.
+Document-level standalone notes appear across views. Item and connection notes
+follow visible targets. View notes appear only in that view. A view note with
+`on: api` includes the item and its ancestor context without replacing its global
+notes. Repeat a matching connection in a view with an attached note to add
+view-specific explanation; identical connections merge their notes.
+
+Collapsed groups collect visible descendant item marks. Internal connection
+notes disappear with their hidden connections. Marks stack along the selected
+edge and then outward; annotation connectors follow them. Notebook blocks wrap
+after eight columns and grow with text wrapping and font size.
+
+Notes, marks, and connectors start dimmed. Select an item to reveal applicable
+notes. Select a mark or note block to focus one explanation. Enter/Space activates
+notes; Escape clears focus. Show notes toggles blocks, marks, and connectors
+together. Notes participate in motion and respect reduced-motion preferences.
+Annotation connectors use the default theme color when idle. Selecting their
+item or their own note/mark applies the item's accent; unrelated connectors keep
+the default color. Connection-note connectors use the selected endpoint's color,
+or the source item's color when the note itself is selected. Hover alone does
+not change connection colors.
+Marks, blocks, and annotation connectors follow their visible item's entry timing.
+Repositioned notes on existing items fade in immediately during layout changes.
+
+## JSON
+
+The JSON model fields remain unchanged:
+
+```json
+{
+  "number": 1,
+  "text": "Details",
+  "resource": "api",
+  "position": "top-right",
+  "fontSize": 18,
+  "connector": {"label": "Why", "dashed": true}
+}
+```
+
+`resource` is available on document/view notes. Item and connection note arrays
+already supply the attachment. Use `connector: null` or omit it for no line.
+Source, JSON, SVG, and standalone HTML exports retain the note settings.

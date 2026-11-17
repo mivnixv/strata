@@ -1,3 +1,4 @@
+import { ConnectionEndLabels } from './connections/endpoints/labels.js';
 import { TilePacker } from './tiling/packing.js';
 /** Deterministic dependency layers and orthogonal, obstacle-aware edge routing. */
 export class DependencyGrid {
@@ -297,7 +298,9 @@ export class OrthogonalRouter {
     return {...edge,points:compact,label:edge.label,labelPosition:null};
   }
   placeLabels(edges) {
-    const occupied = [...this.obstacles];
+    const occupied = [];
+    new ConnectionEndLabels().place(edges,this.obstacles,occupied,segmentIntersectsRect);
+    occupied.push(...this.obstacles);
     for (const edge of edges) {
 
       if (!edge.label) { continue; }

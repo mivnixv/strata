@@ -55,6 +55,18 @@ test('hover does not finish an active layout transition',()=>{
  assert.equal(item.body.attributes.opacity,'1');
 });
 
+test('hover alone never recolors connection bodies or endpoint symbols',()=>{
+ const item=entry('a','b',[{x:0,y:0},{x:100,y:0}]);
+ item.body.setAttribute('stroke','#aaaaaa');
+ item.endpoints.setAttribute('stroke','#aaaaaa');
+ const controller=new ConnectionHover({append(){}},[item]);
+ for (const hovered of ['a','b',null]) {
+  controller.show(hovered);
+  assert.equal(item.body.getAttribute('stroke'),'#aaaaaa');
+  assert.equal(item.endpoints.getAttribute('stroke'),'#aaaaaa');
+ }
+});
+
 test('hover does not reveal unrelated connections while an item is selected',()=>{
  const first=entry('a','b',[{x:0,y:20},{x:100,y:20}]);
  const second=entry('c','d',[{x:50,y:0},{x:50,y:40}]);

@@ -5,9 +5,9 @@ an item or container block:
 
 ```text
 service platform "Commerce" {
-  subheader "Checkout and fulfillment"
+  subheader: "Checkout and fulfillment"
   service api "API" {
-    subheader "Validates incoming requests"
+    subheader: "Validates incoming requests"
   }
 }
 ```

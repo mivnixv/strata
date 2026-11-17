@@ -53,7 +53,7 @@ test('dependencies form left-to-right columns regardless of declaration order', 
   assert.ok(get('web').x < get('api').x); assert.ok(get('api').x < get('db').x); assertRoutes(layout);
 });
 test('fan-out, fan-in, bidirectional edges, cycles and parallel labels use distinct ports', () => {
-  const m = parseStrata('service a "A"\nservice b "B"\nservice c "C"\nservice d "D"\na -> b : "first"\na -> b : "second"\na -> c\nb -> d\nc -> d\nd -> a\nb -> a');
+  const m = parseStrata("service a \"A\"\nservice b \"B\"\nservice c \"C\"\nservice d \"D\"\na -> b \"first\"\na -> b \"second\"\na -> c\nb -> d\nc -> d\nd -> a\nb -> a");
   const layout = new DiagramLayout(m).create('all'); assert.equal(layout.edges.length,7); assertRoutes(layout);
 });
 test('nested group dependencies arrange children into dependency layers', () => {
@@ -82,13 +82,13 @@ app group "Group" {
  service b "B"
 }
 app right "Right"
-left -> a : "one"
-left -> b : "two"
-a -> left : "three"
-b -> left : "four"
-right -> a : "five"
-a -> right : "six"
-a -> b : "internal"`);
+left -> a "one"
+left -> b "two"
+a -> left "three"
+b -> left "four"
+right -> a "five"
+a -> right "six"
+a -> b "internal"`);
   const diagram = new DiagramLayout(model);
   const expanded = diagram.create('all');
   const collapsed = diagram.create('all',new Set(['group']));
@@ -119,12 +119,12 @@ app second "Second" {
  service c "C"
  service d "D"
 }
-a -> c : "one"
-a -> d : "two"
-b -> c : "three"
-c -> a : "four"
-d -> a : "five"
-d -> b : "six"`);
+a -> c "one"
+a -> d "two"
+b -> c "three"
+c -> a "four"
+d -> a "five"
+d -> b "six"`);
   const diagram = new DiagramLayout(model);
   const collapsed = diagram.create('all',new Set(['first','second']));
   assert.equal(collapsed.edges.length,2);

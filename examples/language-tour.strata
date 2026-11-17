@@ -1,0 +1,61 @@
+# Complete DSL example: properties, named blocks, defaults, overrides, and scopes.
+diagram "Language tour"
+
+type service { large-icon: false }
+type queue {
+  color: "#e6b86a"
+  background: "#182333"
+  icon: "svgs/solid/server.svg"
+  line: dashed
+  subheader: "Async work"
+}
+
+note 1 "Properties use key: value; related settings use named blocks."
+app web "Web app"
+group backend "Backend" {
+  subheader: "Generic organizational boundary"
+  description: "Groups support the same styles and notes as other items."
+  layout { sizes: proportional; compactness: 0.8 }
+  service api "API" {
+    note 2 "Preserve request IDs." {
+      position: top-right
+      font-size: 16
+      connector { label: "Retry contract"; line: dashed }
+    }
+  }
+  queue jobs "Jobs"
+  queue events "Events" {
+    icon: null
+    line: solid
+    large-icon: true
+    subheader: ""
+  }
+  # Connections nested in item blocks still use global IDs.
+  api -> jobs "Publish" {
+    line: dashed
+    start { shape: dot; label: "Producer" }
+    end { shape: circle; label: "Inbox" }
+    note 3 "Consumers handle redelivery." { connector {} }
+  }
+}
+web -> api "HTTPS"
+jobs -> events "Fan-out" {
+  start { shape: square }
+  end { shape: asterisk }
+}
+
+view overview "Overview" {
+  include: [
+    web,
+    backend,
+  ]
+  relations: inherit
+  detail: 0.9
+  layout { compactness: 0.7 }
+}
+view focused "Focused" {
+  relations: local
+  include: []
+  api -> events "Direct" { end { shape: none } }
+  note 4 "This explanation belongs only to Focused." { on: api; position: left }
+}

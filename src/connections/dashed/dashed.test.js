@@ -9,7 +9,7 @@ import { connectionStroke, CONNECTION_DASH_PATTERN } from './style.js';
 const resources='service api "API"\ndatabase db "DB"\nservice dashed "Dashed ID"\n';
 
 test('labeled and unlabeled dashed connections round-trip globally and within views',()=>{
-  const model=parseStrata(resources+'api -> db : "Query" dashed\napi -> dashed\nview main "Main" {\n api -> db dashed\n db -> api : "dashed"\n}');
+  const model=parseStrata(resources+"api -> db \"Query\" {\n  line: dashed\n}\napi -> dashed\nview main \"Main\" {\n api -> db {\n   line: dashed\n }\n db -> api \"dashed\"\n}");
   assert.equal(model.relations[0].dashed,true);
   assert.equal(model.relations[1].dashed,false);
   assert.equal(model.relations[1].to,'dashed');
@@ -31,13 +31,13 @@ test('JSON accepts optional booleans and rejects malformed connection styles',()
       scope[0].dashed=previous;
     }
   }
-  for (const suffix of ['dotted','dashed dashed',': dashed','dashed : "Query"']) {
-    assert.throws(()=>parseStrata(resources+'api -> db '+suffix));
+  for (const suffix of ['line: dotted','line: dashed; line: dashed','line: true','color: "#ffffff"']) {
+    assert.throws(()=>parseStrata(resources+'api -> db { '+suffix+' }'));
   }
 });
 
 test('solid and dashed relationships stay distinct while same-style duplicates merge',()=>{
-  const model=parseStrata(resources+'api -> db : "Query" dashed\nview main "Main" {\n api -> db : "Query" dashed\n api -> db : "Query"\n}');
+  const model=parseStrata(resources+"api -> db \"Query\" {\n  line: dashed\n}\nview main \"Main\" {\n api -> db \"Query\" {\n   line: dashed\n }\n api -> db \"Query\"\n}");
   const view=model.perspectives[0];
   assert.equal(relationsForPerspective(model,view).length,2);
   const layout=new DiagramLayout(model).create('main');
@@ -50,9 +50,13 @@ test('collapsed groups bundle connections separately by stroke style',()=>{
  service two "Two"
 }
 service outside "Outside"
-one -> outside : "First" dashed
-two -> outside : "Second" dashed
-one -> outside : "Solid"`);
+one -> outside "First" {
+  line: dashed
+}
+two -> outside "Second" {
+  line: dashed
+}
+one -> outside "Solid"`);
   const layout=new DiagramLayout(model).create('all',new Set(['parent']));
   assert.equal(layout.edges.length,2);
   assert.equal(layout.edges.find(edge=>edge.dashed).relationships.length,2);
@@ -65,7 +69,7 @@ test('dashed SVG attributes leave solid connections unchanged',()=>{
 });
 
 test('offline HTML preserves dashed connections and includes their renderer',async()=>{
-  const source=resources+'api -> db : "Async query" dashed';
+  const source=resources+"api -> db \"Async query\" {\n  line: dashed\n}";
   const html=await new StandaloneBuilder().build(source);
   const saved=JSON.parse(html.match(/<script id="strata-bootstrap" type="application\/json">([\s\S]*?)<\/script>/)[1]);
   assert.equal(parseStrata(saved.source).relations[0].dashed,true);

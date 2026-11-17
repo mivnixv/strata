@@ -9,196 +9,117 @@
   <div class="modal-heading"><h2>Strata guide</h2><button id="guide-close" class="quiet" aria-label="Close guide">✕</button></div>
   <div class="guide">
     <nav aria-label="Guide sections">
-      <a href="#guide-start">Start</a>
-      <a href="#guide-items">Items</a>
-      <a href="#guide-connections">Connections &amp; views</a>
-      <a href="#guide-notes">Notes</a>
-      <a href="#guide-layout">Layout</a>
-      <a href="#guide-controls">Controls</a>
-      <a href="#guide-export">Save &amp; export</a>
-      <a href="#guide-limits">Limits</a>
+      <a href="#guide-start">Start</a><a href="#guide-items">Items &amp; types</a>
+      <a href="#guide-connections">Connections &amp; views</a><a href="#guide-notes">Notes</a>
+      <a href="#guide-layout">Layout</a><a href="#guide-controls">Controls</a>
+      <a href="#guide-export">Save &amp; export</a><a href="#guide-limits">Limits</a>
     </nav>
-
     <section id="guide-start">
-      <h3>1. Start with a diagram</h3>
-      <p>One statement per line. Braces define hierarchy; indentation is for readability. Paste this into the editor:</p>
+      <h3>1. A consistent language</h3>
+      <p>Declarations use readable headers; properties use <code>key: value</code>. Separate properties and leaf declarations with newlines or semicolons. Blocks can be inline or multiline. Strings use double quotes and JSON escapes; IDs and enums are bare words. <code>#</code> starts a comment outside strings.</p>
       <pre>diagram "My architecture"
-
 app web "Web app"
-service platform "Platform" {
-  subheader "Core application boundary"
-  dashed
-  service api "API" {
-    subheader "Validates requests"
-    noLargeIcon
-    note 1 "Keep request IDs" position top-right
-  }
-  database db "Database"
+group backend "Backend" {
+  subheader: "Core application boundary"
+  service api "API" { large-icon: false }
+  database db "Database" { icon: "brands/brands_p/postgresql_icon.svg" }
 }
-web -> api : "HTTPS"
-api -> db : "Query" note 2 "Read replica" connect dashed
-
-view overview "Overview" {
-  include web, platform
-}</pre>
-      <ul>
-        <li>Types: <code>app</code>, <code>service</code>, <code>database</code>, <code>infrastructure</code>, <code>external</code>, <code>group</code>.</li>
-        <li>IDs start with a letter or underscore, followed by letters, digits, underscores, dots, or hyphens. Resource IDs must be unique.</li>
-        <li>Strings use double quotes and JSON escapes. Use <code>\n</code> for a line break.</li>
-        <li><code>#</code> starts a comment outside a string. Forward references are supported.</li>
-        <li>Closing braces go on their own line. Inline blocks and semicolons are unsupported.</li>
-      </ul>
+web -> api "HTTPS"
+api -> db "Query"
+view overview "Overview" { include: [web, backend] }</pre>
+      <p>Lists use brackets and commas, support multiple lines, and allow a trailing comma. Forward item/type references work. IDs are global and start with a letter or underscore, followed by letters, digits, underscores, dots, or hyphens. Unknown, duplicate, and wrong-scope properties are errors. Diagnostics identify the line and column.</p>
     </section>
-
     <section id="guide-items">
-      <h3>2. Items and containers</h3>
-      <p>Use <code>group</code> for a generic container. Nest items inside any item's block to create a container. Add these options inside that block:</p>
-      <table>
-        <thead><tr><th>Option</th><th>Behavior</th></tr></thead>
-        <tbody>
-          <tr><td><code>subheader "Request entry point"</code></td><td>Optional text beneath the title. Type names are not shown automatically.</td></tr>
-          <tr><td><code>description "Details"</code></td><td>Longer text, shown for the selected item when <b>Description</b> is enabled.</td></tr>
-          <tr><td><code>icon "svgs/solid/server.svg"</code></td><td>Custom header and large decorative icon. Paths are relative to <code>icons/</code>.</td></tr>
-          <tr><td><code>noLargeIcon</code></td><td>Hides the large decorative icon; keeps the small header icon and card size.</td></tr>
-          <tr><td><code>dashed</code></td><td>Dashed border on an item or container; solid is the default.</td></tr>
-          <tr><td><code>note 1 "Explanation"</code></td><td>Attaches a numbered mark and notebook block to the item.</td></tr>
-        </tbody>
-      </table>
-      <p>Subheaders shrink or truncate to fit and also appear on collapsed groups. A collapsed group without a custom subheader keeps its component-count summary. Item options do not automatically apply to descendants.</p>
-    </section>
-
-    <section id="guide-connections">
-      <h3>3. Connections and perspectives</h3>
-      <pre>service api "API"
-infrastructure queue "Queue"
-api -> queue : "Publish event" dashed
-
-view operations "Operations" {
-  include api, queue
+      <h3>2. Items, containers, and type defaults</h3>
+      <p>Built-in types: <code>app</code>, <code>service</code>, <code>database</code>, <code>infrastructure</code>, <code>external</code>, <code>group</code>. Any item with children is a container. Use <code>group</code> for an organizational boundary; empty groups are allowed.</p>
+      <pre>type queue {
+  color: "#e6b86a"
+  icon: "svgs/solid/server.svg"
+  line: dashed
+  large-icon: false
 }
-view recovery "Recovery only" {
-  relations only
-  queue -> api : "Retry"
-}</pre>
-      <ul>
-        <li>Connection labels are optional. Append <code>dashed</code> after the label for a dashed line.</li>
-        <li>Connections outside views are global. Views inherit applicable globals and may add local connections.</li>
-        <li><code>relations only</code> disables inherited global connections in that view.</li>
-        <li><code>include api, queue</code> selects items. Including a container includes its descendants.</li>
-        <li>Without <code>include</code>, local connection endpoints and item note targets determine membership; views with neither infer it from inherited globals.</li>
-        <li>Local endpoints include their ancestor context without unrelated siblings. Without any views, an overview is generated.</li>
-      </ul>
+queue jobs "Jobs"
+queue events "Events" { line: solid; icon: null; large-icon: true }</pre>
+      <p>Declare types at document level. Built-in types can also receive defaults. Items override their type's defaults; formatting preserves inheritance. Defaults apply to that type, not descendants of a container. Custom types without a color use the theme's muted color.</p>
+      <table><thead><tr><th>Property</th><th>Value</th></tr></thead><tbody>
+        <tr><td><code>color</code></td><td>Quoted six-digit hex; item borders, accents, neutral-icon tint, and selected connections.</td></tr>
+        <tr><td><code>background</code></td><td>Quoted six-digit hex; item fill.</td></tr>
+        <tr><td><code>icon</code></td><td>Quoted bundled path relative to icons/; <code>null</code> clears inheritance.</td></tr>
+        <tr><td><code>large-icon</code></td><td><code>true</code> or <code>false</code>; header icon remains visible.</td></tr>
+        <tr><td><code>line</code></td><td><code>solid</code> or <code>dashed</code>.</td></tr>
+        <tr><td><code>subheader</code></td><td>Quoted secondary text; <code>""</code> clears inheritance.</td></tr>
+        <tr><td><code>description</code></td><td>Quoted explanation; item-only, shown with Description enabled.</td></tr>
+      </tbody></table>
+      <p>Icons appear large only when a leaf or collapsed group has space. Expanded groups show the small header icon. Neutral icons use the item accent; colored icons retain their colors.</p>
     </section>
-
+    <section id="guide-connections">
+      <h3>3. Connections and views</h3>
+      <pre>api -> jobs "Publish" {
+  line: dashed
+  start { shape: dot; label: "Producer" }
+  end { shape: circle; label: "Inbox" }
+}
+view work "Work" {
+  include: [api, jobs]
+  relations: local
+  api -> jobs "Local relationship"
+}</pre>
+      <p>A connection's optional middle label follows its target ID, or uses <code>label:</code> inside the block. Endpoint blocks accept <code>shape</code> and <code>label</code> in either order. Shapes: <code>dot</code> (filled), <code>circle</code> (hollow), <code>arrow</code>, <code>asterisk</code>, <code>square</code>, <code>none</code>. Defaults: no start symbol, end arrow. Labels follow the Labels toggle; symbols remain visible.</p>
+      <p>Connections outside views are global, including connections inside item blocks. <code>relations: inherit</code> is the view default; <code>relations: local</code> uses only local connections. Identical global/local connections merge their notes.</p>
+      <p><code>include: [api, jobs]</code> selects items; selecting a container includes descendants. Omit it to infer membership; <code>include: []</code> adds no explicit context. Local connection endpoints and attached note targets are included automatically. Their ancestors provide context. Without local membership sources, inherited connections determine membership. No declared views creates an overview.</p>
+    </section>
     <section id="guide-notes">
       <h3>4. Numbered notes</h3>
-      <h4>Choose the attachment</h4>
-      <pre>note 1 "Standalone context"
+      <pre>note 1 "General explanation"
 service api "API" {
-  note 2 "Mark and note only"
-  note 3 "Larger item note" position right fontSize 18 connect : "Details" dashed
+  note 2 "Keep request IDs." {
+    position: top-right
+    font-size: 18
+    connector { label: "Retry contract"; line: dashed }
+  }
 }
-database db "Database"
-api -> db note 4 "Connection note" connect solid
-
-view data "Data" {
-  include api, db
-  note 5 "Standalone note for this view"
-  note 6 "View-only API detail" on api position right
-}</pre>
-      <p>Top-level notes have no mark and appear across views. Notes inside items attach to those items; notes after an arrow attach to that connection. Notes inside views appear only in that view. Append <code>on api</code> to attach a view note to an existing item; its global notes remain intact. The target item and ancestor context are included automatically. Numbers must be positive integers unique across the diagram.</p>
-      <h4>Preserve global notes and add view-only detail</h4>
-      <pre>service api "API" {
-  note 1 "Global API explanation"
-}
+service db "Database"
+api -> db "Query" { note 3 "Read-only." { connector {} } }
 view checkout "Checkout" {
-  note 2 "Checkout-only detail" on api connect dashed
-}
-view operations "Operations" {
-  include api
+  include: [api, db]
+  note 4 "View-only detail." { on: api; position: left }
 }</pre>
-      <p>Checkout shows notes 1 and 2; Operations keeps global note 1. A local note adds to the global explanations instead of replacing them. To add a view-only connection note, repeat the matching global connection inside the view with its note; both sets of notes share one connection.</p>
-      <p>In the bundled example, compare <b>Order lifecycle</b> with <b>Browse &amp; checkout</b>: order notes 3–4 stay global, note 9 belongs only to Order lifecycle, and note 13 belongs only to Browse &amp; checkout. The checkout payment connection keeps global note 7 alongside local note 14.</p>
-      <h4>Customize the note</h4>
-      <table>
-        <thead><tr><th>Option</th><th>Default and scope</th></tr></thead>
-        <tbody>
-          <tr><td><code>on api</code></td><td>Attach a model/view-level note to an existing item. Global notes remain visible where applicable.</td></tr>
-          <tr><td><code>fontSize 18.5</code></td><td>Note body text defaults to 14. Any positive finite size, including decimals.</td></tr>
-          <tr><td><code>position top-right</code></td><td>Item marks default to top-left. Does not move the notebook block.</td></tr>
-          <tr><td><code>connect</code></td><td>Optional solid line from a notebook block to its mark.</td></tr>
-          <tr><td><code>connect : "Label" dashed</code></td><td>Optional label and dashed/solid style. Omit <code>connect</code> for just a mark and note.</td></tr>
-        </tbody>
-      </table>
-      <p>Mark positions: <code>top-left</code>, <code>top</code>, <code>top-right</code>, <code>right</code>, <code>bottom-right</code>, <code>bottom</code>, <code>bottom-left</code>, <code>left</code>. Multiple marks stack along the chosen edge. Connectors follow their marks, including on collapsed items.</p>
-      <p>Options can appear in any order. A connector's label and <code>dashed</code>/<code>solid</code> follow <code>connect</code>. Standalone notes have no mark and cannot use connectors or item mark positions.</p>
-      <h4>Visibility and focus</h4>
-      <ul>
-        <li>Ruled notebook blocks use eight equal columns, in number order. Partial rows do not stretch.</li>
-        <li>Blocks, marks, and connectors start dimmed at 25% opacity.</li>
-        <li>Selecting an item reveals its related notes and marks; related annotation connectors become 50% visible. Colors stay unchanged.</li>
-        <li>Click a mark or block to focus only that note and its attachment. Other notes, including those on the same item, dim.</li>
-        <li><b>Show notes</b> toggles blocks, marks, and annotation connectors together.</li>
-        <li>Enter/Space activates a focused note. Empty canvas or Escape clears focus.</li>
-        <li>Notes follow view membership. Collapsed groups collect item marks and bundle external connection notes; internal connection notes hide until expansion.</li>
-      </ul>
+      <p>Item and connection notes attach to their declaration's target. Document notes appear across views; view notes appear only in that view. <code>on: ID</code> attaches a document/view note to an existing item and adds to global detail. Note numbers must be unique positive safe integers.</p>
+      <p><code>position</code> is item-only: <code>top-left</code> (default), <code>top</code>, <code>top-right</code>, <code>right</code>, <code>bottom-right</code>, <code>bottom</code>, <code>bottom-left</code>, <code>left</code>. <code>font-size</code> accepts positive finite numbers, including decimals; default 14.</p>
+      <p>Omit <code>connector</code> for just the mark and note. <code>connector {}</code> enables a solid unlabeled line; its properties are <code>label</code> and <code>line</code>. Unattached notes cannot have connectors or mark positions. Marks stack along edges; notebook blocks wrap at eight columns. Collapsed groups collect visible descendant marks.</p>
+      <p>Notes start dimmed. Select an item to reveal related notes; select a mark/block to focus one explanation. Enter/Space activates notes; Escape clears focus. Show notes toggles marks, blocks, and connectors together.</p>
     </section>
-
     <section id="guide-layout">
       <h3>5. Layout and detail</h3>
-      <table>
-        <thead><tr><th>Option</th><th>Values</th><th>Scope</th></tr></thead>
-        <tbody>
-          <tr><td><code>sizes auto</code></td><td><code>auto</code>, <code>uniform</code>, <code>proportional</code></td><td>Item/container or view</td></tr>
-          <tr><td><code>compactness 0.6</code></td><td>0.1–1; higher values narrow gaps</td><td>Item/container or view</td></tr>
-          <tr><td><code>detail 0.75</code></td><td>0–1; 1 shows full detail, 0 rolls groups up</td><td>View</td></tr>
-        </tbody>
-      </table>
-      <p>Defaults: <code>sizes auto</code>, <code>compactness 0.6</code>, <code>detail 1</code>. Resource settings control that container's children. Zoom and viewport size affect how much detail fits; manual collapses persist across zoom.</p>
+      <pre>group backend "Backend" {
+  layout { sizes: uniform; compactness: 0.8 }
+  service api "API"
+  database db "Database"
+}
+view overview "Overview" {
+  include: [backend]
+  detail: 0.7
+  layout { sizes: proportional; compactness: 0.6 }
+}</pre>
+      <p><code>layout</code> works on items and views. <code>sizes</code>: <code>auto</code> (default), <code>uniform</code>, <code>proportional</code>. <code>compactness</code>: 0.1–1, default 0.6; higher values reduce gaps. Item settings control their children. View <code>detail</code> ranges 0–1 and defaults to 1. Zoom and viewport size also affect adaptive collapse; manual collapses persist across zoom.</p>
     </section>
-
     <section id="guide-controls">
       <h3>6. Editor and navigation</h3>
-      <table>
-        <thead><tr><th>Action</th><th>Behavior</th></tr></thead>
-        <tbody>
-          <tr><td>Edit source</td><td>Preview updates after 300 ms. Invalid source keeps the last valid preview.</td></tr>
-          <tr><td>Ctrl/Cmd+Enter</td><td>Apply source immediately.</td></tr>
-          <tr><td>Tab in editor</td><td>Insert two spaces.</td></tr>
-          <tr><td>Format</td><td>Canonicalize valid source; removes comments.</td></tr>
-          <tr><td>Select an item</td><td>Reveal direct connections, endpoints, and related notes; dim unrelated content.</td></tr>
-          <tr><td>Double-click group / Space</td><td>Collapse or expand the group.</td></tr>
-          <tr><td>Wheel/trackpad over canvas</td><td>Zoom around the pointer, 40–300%.</td></tr>
-          <tr><td>Empty canvas / Escape</td><td>Clear selection.</td></tr>
-        </tbody>
-      </table>
-      <p>With no selection, hovering an item reveals its direct connections. Selection takes precedence over hover. Perspectives, zoom, selection, and collapse state never change source. Diagrams and notes animate together and respect reduced-motion preferences.</p>
+      <p>Source updates the preview after a short delay. Invalid source leaves the last valid preview visible. Format emits canonical multiline source and removes comments. Click an item to reveal direct connections; double-click to collapse/expand. Hover reveals connections when nothing is selected. Perspective, Resource, Theme, Detail, zoom, and collapse controls affect the preview. Description shows an item's explanation. Motion respects reduced-motion preferences.</p>
     </section>
-
     <section id="guide-export">
-      <h3>7. Save, import, and export</h3>
-      <ul>
-        <li><b>Source:</b> saves the last valid server-mode source in this browser. Export <code>.strata</code> for a portable backup or Git.</li>
-        <li><b>Import:</b> accepts Strata text or compatible JSON. Import the bundled <code>src/example.strata</code> to explore 14 notes and their attachment options.</li>
-        <li><b>SVG:</b> exports the current view and note visibility after settling animations.</li>
-        <li><b>Offline HTML:</b> embeds source, all model resources/views, icons, styles, and renderer. Opens directly from disk without a server or internet.</li>
-        <li>Offline HTML starts as a full-window viewer without the source sidebar. Re-export to preserve in-memory changes; it cannot overwrite the original file automatically.</li>
-        <li>Existing browser-saved source is preserved when the bundled example changes.</li>
-      </ul>
+      <h3>7. Save and export</h3>
+      <p>Source exports .strata; Import accepts .strata and the existing JSON model. SVG exports the current view. Offline HTML embeds source, renderer, styles, and referenced icons without external assets. Missing icons prevent incomplete exports. Source is saved locally under this grammar's own storage key; older saved text is retained separately. Previous DSL syntax is unsupported; JSON field names are unchanged.</p>
+      <p>Validate from a checkout with <code>node cli/strata.mjs verify architecture.strata</code>. Build with <code>node cli/strata.mjs build architecture.strata -o architecture.html</code>.</p>
     </section>
-
     <section id="guide-limits">
       <h3>8. Limits</h3>
-      <table>
-        <thead><tr><th>Resource</th><th>Maximum</th></tr></thead>
-        <tbody>
-          <tr><td>Source</td><td>1 MB</td></tr>
-          <tr><td>Items / total connections / views / nesting</td><td>300 / 1,000 / 30 / 12 levels</td></tr>
-          <tr><td>Notes / text per note</td><td>1,000 / 5,000 characters</td></tr>
-          <tr><td>Subheader / connection or annotation label</td><td>500 characters</td></tr>
-        </tbody>
-      </table>
-      <p>Dense graphs can require crossings and shared routes. Labels shrink or truncate when needed; tooltips preserve original connection labels.</p>
+      <table><thead><tr><th>Resource</th><th>Maximum</th></tr></thead><tbody>
+        <tr><td>Source</td><td>1 MB</td></tr><tr><td>Items / connections / views / parent levels</td><td>300 / 1,000 / 30 / 12</td></tr>
+        <tr><td>Type definitions / type name length</td><td>100 / 100 characters</td></tr>
+        <tr><td>Notes / text per note</td><td>1,000 / 5,000 characters</td></tr><tr><td>Subheader / connection label</td><td>500 characters</td></tr>
+      </tbody></table>
+      <p>Dense graphs can require shared routes and crossings. Labels shrink, truncate, or hide when space is insufficient; endpoint tooltips retain full text.</p>
     </section>
   </div>
 </dialog><div id="toast" role="status" hidden></div><input id="file" type="file" accept=".strata,.txt,.json,text/plain,application/json" hidden><script type="module" src="app.js"></script></body></html>
