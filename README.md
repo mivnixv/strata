@@ -163,7 +163,17 @@ or the [guide](docs/guide.md#keep-global-notes-and-add-view-only-detail).
 
 ## Validate and export
 
-Run directly from GitHub with Node.js 20.11+; no manual clone or npm release needed:
+Run a versioned GitHub release artifact with Node.js 20.11+:
+
+```sh
+npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.2.3/strata-diagrams-1.2.3.tgz strata generate architecture.strata -o architecture.html
+```
+
+Replace `1.2.3` in the tag and filename with an available release version.
+The archive includes the CLI, renderer, styles, and icons; no npm publication
+is needed. See [versioning and releases](publishing/release/README.md).
+
+Run the current GitHub checkout without a manual clone:
 
 ```sh
 npx --yes github:mivnixv/strata verify architecture.strata
@@ -195,6 +205,7 @@ when the card has room. The small header icon remains. See
 [large icon visibility](src/items/no-large-icon/README.md).
 
 [CLI options](cli/README.md) · [Full guide](docs/guide.md) · [GitHub Pages setup](publishing/README.md)
+· [Versioning and releases](publishing/release/README.md)
 
 ## Development
 

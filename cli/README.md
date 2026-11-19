@@ -5,6 +5,7 @@ Run from the repository root:
 
 ```sh
 node cli/strata.mjs verify architecture.strata
+node cli/strata.mjs generate architecture.strata -o architecture.html
 node cli/strata.mjs build architecture.strata -o architecture.html
 node cli/strata.mjs build architecture.strata --view overview -o overview.html
 cat architecture.strata | node cli/strata.mjs build - -o diagram.html
@@ -12,6 +13,17 @@ cat architecture.strata | node cli/strata.mjs build - -o diagram.html
 
 `npm run cli -- <arguments>` also works. Linking the checkout with `npm link`
 exposes the `strata` command.
+
+`generate` and `build` are aliases. `strata --version` (or `strata -v`) reports
+the package version without loading a diagram. Run a GitHub release artifact:
+
+```sh
+npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.2.3/strata-diagrams-1.2.3.tgz strata generate architecture.strata -o architecture.html
+```
+
+Use an available release version in both the tag and filename. See
+[versioning and release artifacts](../publishing/release/README.md) for the
+GitHub release workflow. No npm account or registry publication is needed.
 
 Input accepts Strata text or compatible JSON models. JSON is detected by its
 opening brace. Validation covers syntax, resource/reference rules, model limits,

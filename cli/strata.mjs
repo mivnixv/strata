@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { open, writeFile } from 'node:fs/promises';
+import { open, readFile, writeFile } from 'node:fs/promises';
 import { parseArgs } from 'node:util';
 import { resolve, parse } from 'node:path';
 import { LIMITS, parseModel } from '../src/framework.js';
@@ -8,10 +8,13 @@ import { StandaloneBuilder } from './standalone-builder.mjs';
 
 const help=`Usage:
   strata verify <input.strata|input.json|->
+  strata generate <input.strata|input.json|-> [-o output.html] [--view id]
   strata build <input.strata|input.json|-> [-o output.html] [--view id]
+  strata --version
 
 Use - to read stdin. JSON is detected by its opening brace.
 Build defaults to <input-name>.html (diagram.html for stdin).
+generate and build are aliases.
 Existing output files are never overwritten. Requires Node.js 20.11+.
 `;
 
@@ -51,13 +54,23 @@ async function readSource(input) {
 async function run() {
   const {values,positionals}=parseArgs({allowPositionals:true,options:{
     help:{type:'boolean',short:'h'},
+    version:{type:'boolean',short:'v'},
     output:{type:'string',short:'o'},
     view:{type:'string'}
   }});
 
   if (values.help) { process.stdout.write(help); return; }
 
-  const [command,input]=positionals;
+  if (values.version) {
+
+    if (positionals.length || values.output!==undefined || values.view!==undefined) { throw new Error('--version does not accept input or output options.'); }
+
+    const metadata=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+    console.log(metadata.version); return;
+  }
+
+  const [requested,input]=positionals;
+  const command=requested==='generate' ? 'build' : requested;
 
   if (!['verify','build'].includes(command) || !input || positionals.length!==2) { throw new Error(help); }
   if (command==='verify' && (values.output!==undefined || values.view!==undefined)) { throw new Error('verify does not accept --output or --view.'); }

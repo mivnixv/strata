@@ -13,3 +13,6 @@ For a different default branch, update the workflow trigger.
 Both root domains and repository subpaths are supported. Browser-saved diagrams
 stay in each visitor's localStorage; there is no server storage or collaboration.
 The **Offline HTML** button still exports the separate diagram viewer.
+
+CLI packages and versioned offline viewers use a separate
+[GitHub release workflow](release/README.md).

@@ -21,6 +21,30 @@ async function workspace(t) {
   return directory;
 }
 
+test('version reports package metadata without requiring an input file',async t=>{
+  const cwd=await workspace(t);
+  const metadata=JSON.parse(await readFile(new URL('package.json',root),'utf8'));
+  for (const flag of ['--version','-v']) {
+    const result=run(cwd,[flag]);
+    assert.equal(result.status,0,result.stderr);
+    assert.equal(result.stdout.trim(),metadata.version);
+  }
+  assert.equal(run(cwd,['--version','input.strata']).status,1);
+  assert.equal(run(cwd,['--version','-o','output.html']).status,1);
+});
+
+test('generate aliases build, preserving selected views and overwrite protection',async t=>{
+  const cwd=await workspace(t);
+  const result=run(cwd,['generate','input.strata','--view','storage','-o','generated.html']);
+  assert.equal(result.status,0,result.stderr);
+  const html=await readFile(join(cwd,'generated.html'),'utf8');
+  assert.deepEqual(bootstrap(html),{source,presentation:{perspective:'storage'},icons:{}});
+  const repeat=run(cwd,['generate','input.strata','-o','generated.html']);
+  assert.equal(repeat.status,1);
+  assert.match(repeat.stderr,/EEXIST/);
+  assert.equal(await readFile(join(cwd,'generated.html'),'utf8'),html);
+});
+
 test('verify validates input without producing output',async t=>{
   const cwd=await workspace(t);
   const result=run(cwd,['verify','input.strata']);
