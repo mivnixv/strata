@@ -59,3 +59,12 @@ view focused "Focused" {
   api -> events "Direct" { end { shape: none } }
   note 4 "This explanation belongs only to Focused." { on: api; position: left }
 }
+
+view vertical "Vertical dispatch and response" {
+  relations: local
+  include: [backend]
+  backend -> api "Dispatch" { end { shape: arrow } }
+  api -> backend "Response" { end { shape: arrow } }
+  api -> jobs "Publish"
+  jobs -> events "Fan-out"
+}

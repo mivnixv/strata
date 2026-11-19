@@ -217,7 +217,7 @@ export class DiagramLayout {
 
     }
     const routed = new OrthogonalRouter(nodes).route(edges);
-    const points = routed.flatMap(edge => [...edge.points.map(point=>({...point})),...['startLabelPosition','endLabelPosition'].flatMap(key=>{
+    const points = routed.flatMap(edge => [...edge.points.map(point=>({...point})),...['labelPosition','startLabelPosition','endLabelPosition'].flatMap(key=>{
       const p=edge[key];
       return p ? [{x:p.x-p.width/2-8,y:p.y-20},{x:p.x+p.width/2+8,y:p.y+12}] : [];
     })]);

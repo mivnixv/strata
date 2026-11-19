@@ -173,3 +173,12 @@ view system "System overview" {
   include: [channels, platform, records, partners]
   detail: 0.65
 }
+
+# Container-to-service dispatch and status links demonstrate vertical ports.
+view vertical "Enrollment with vertical dispatch" {
+  description: "Follow a subscription from plan selection through payment confirmation, tenant provisioning, and entitlement activation."
+  include: [portal, eligibility, checkout, ledger, relay, events, billing, payments, callbacks, activation, provisioner, tenants, access, entitlements, notifications]
+  signup -> eligibility "Dispatch validation"
+  lifecycle -> activation "Dispatch activation"
+  notifications -> lifecycle "Delivery status"
+}

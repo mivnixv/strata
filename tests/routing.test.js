@@ -16,8 +16,12 @@ function assertRoutes(layout) {
   for (const edge of layout.edges) {
     assert.ok(edge.points.length >= 2);
     const start = edge.points[0], end = edge.points.at(-1);
-    assert.ok(start.x === edge.from.x || start.x === edge.from.x+edge.from.w);
-    assert.ok(end.x === edge.to.x || end.x === edge.to.x+edge.to.w);
+    for (const [point,node] of [[start,edge.from],[end,edge.to]]) {
+      const height=node.container && !node.collapsed ? 44 : node.h;
+      const onVertical=(point.x===node.x || point.x===node.x+node.w) && point.y>=node.y && point.y<=node.y+height;
+      const onHorizontal=(point.y===node.y || point.y===node.y+height) && point.x>=node.x && point.x<=node.x+node.w;
+      assert.ok(onVertical || onHorizontal,'Connection attaches to a resource boundary');
+    }
     for (const [a,b] of segments(edge)) {
       assert.ok(a.x >= 0 && a.y >= 0 && b.x <= layout.width && b.y <= layout.height);
       for (const node of layout.nodes) {

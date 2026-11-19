@@ -1,3 +1,4 @@
+import { ConnectionPorts } from './connections/ports/ports.js';
 import { ConnectionEndLabels } from './connections/endpoints/labels.js';
 import { TilePacker } from './tiling/packing.js';
 /** Deterministic dependency layers and orthogonal, obstacle-aware edge routing. */
@@ -155,9 +156,10 @@ class RouteQueue {
   }
 }
 export class OrthogonalRouter {
-  constructor(nodes) {
+  constructor(nodes,{ports=new ConnectionPorts()}={}) {
+    this.ports=ports;
     // Group interiors are navigable; their headers and resource cards are obstacles.
-    this.obstacles = nodes.map(n => ({id:n.resource.id,x:n.x,y:n.y,w:n.w,h:n.container && !n.collapsed ? 44 : n.h}));
+    this.obstacles = nodes.map(node=>({id:node.resource.id,...this.ports.bounds(node)}));
     this.horizontalSegments = new RouteOccupancy(); this.verticalSegments = new RouteOccupancy();
     this.horizontalObstacles = new Map(); this.verticalObstacles = new Map();
     this.xs = new Set([24]); this.ys = new Set([24]);
@@ -169,39 +171,17 @@ export class OrthogonalRouter {
     }
   }
   route(edges) {
-    const ports = new Map();
-    const assignments = edges.map(edge => {
-      const rightward = edge.to.x > edge.from.x;
-      const sameColumn = edge.to.x === edge.from.x;
-      const fromSide = rightward || sameColumn ? 'right' : 'left';
-      const toSide = rightward ? 'left' : 'right';
-      const pair = {edge,fromSide,toSide};
-      for (const [node,side,kind] of [[edge.from,fromSide,'start'],[edge.to,toSide,'end']]) {
-        const key = node.resource.id+'\0'+side, list = ports.get(key) ?? [];
-        list.push({pair,kind,other:kind === 'start' ? edge.to : edge.from}); ports.set(key,list);
-      }
-      return pair;
-    });
-    for (const list of ports.values()) {
-      list.sort((a,b) => a.other.y-b.other.y || a.other.x-b.other.x);
-      list.forEach(({pair,kind},i) => {
-        const node = kind === 'start' ? pair.edge.from : pair.edge.to;
-        const side = kind === 'start' ? pair.fromSide : pair.toSide;
-        const h = node.container && !node.collapsed ? 44 : node.h;
-        const bundled = node.container && node.collapsed;
-        const upper = (side === 'right') === (kind === 'start');
-        pair[kind] = {x:side === 'right' ? node.x+node.w : node.x,y:bundled ? node.y+(upper ? 32 : 64) : node.y+12+(h-24)*(i+1)/(list.length+1)};
-        pair[kind+'Lane'] = bundled ? (kind === 'end' ? 1 : 2) : i+1;
-      });
-    }
-    this.alignPorts(assignments);
+    const assignments=this.ports.assign(edges);
+    this.ports.align(assignments,this.obstacles,segmentIntersectsRect);
     // Reserve every endpoint stub before routing so earlier edges cannot occupy later ports.
     for (const pair of assignments) {
       pair.a = this.portStub(pair.start,pair.fromSide,pair.startLane);
       pair.b = this.portStub(pair.end,pair.toSide,pair.endLane);
       for (const [port,stub] of [[pair.start,pair.a],[pair.end,pair.b]]) {
         for (const offset of [-3,0,3]) { this.xs.add(stub.x+offset); this.ys.add(stub.y+offset); }
-        this.horizontalSegments.add(port.y,port.x,stub.x);
+        const vertical=this.ports.vertical(port===pair.start ? pair.fromSide : pair.toSide);
+        const occupancy=vertical ? this.verticalSegments : this.horizontalSegments;
+        occupancy.add(vertical ? port.x : port.y,vertical ? port.y : port.x,vertical ? stub.y : stub.x);
       }
     }
     const routed = assignments.map(pair => this.routeEdge(pair));
@@ -215,19 +195,28 @@ export class OrthogonalRouter {
       x:rect.x-diagonalClearance,y:rect.y-diagonalClearance,
       w:rect.w+2*diagonalClearance,h:rect.h+2*diagonalClearance
     }));
-    // Move both ends of each vertical run: keep one full diagonal, not bevels.
+    // Slant a crosswise run between parallel arms, preserving terminal directions.
     for (let i=1;i<points.length-2;i++) {
       const before=result[i-1],a=result[i],b=result[i+1],after=result[i+2];
+      const vertical=a.x===b.x && before.y===a.y && after.y===b.y;
+      const horizontal=a.y===b.y && before.x===a.x && after.x===b.x;
 
-      if (a.x!==b.x || before.y!==a.y || after.y!==b.y) { continue; }
+      if (!vertical && !horizontal) { continue; }
 
-      for (let attempt=0;attempt<16;attempt++) {
-        const fraction=.45/2**attempt;
-        const start={x:a.x+(before.x-a.x)*fraction,y:a.y};
-        const end={x:b.x+(after.x-b.x)*fraction,y:b.y};
+      const axis=vertical ? 'x' : 'y',steps=16;
+      // Prefer equal shifts, then try independent shifts for uneven clearance.
+      for (let attempt=0;attempt<steps+steps*steps;attempt++) {
+        const pair=attempt-steps;
+        const startStep=attempt<steps ? attempt : Math.floor(pair/steps);
+        const endStep=attempt<steps ? attempt : pair%steps;
 
-        // Equal return runs need asymmetric shifts to avoid another vertical.
-        if (Math.abs(start.x-end.x)<1e-9) { end.x=b.x+(end.x-b.x)*.5; }
+        if (attempt>=steps && startStep===endStep) { continue; }
+
+        const start={...a,[axis]:a[axis]+(before[axis]-a[axis])*.45/2**startStep};
+        const end={...b,[axis]:b[axis]+(after[axis]-b[axis])*.45/2**endStep};
+
+        // Equal return runs need asymmetric shifts to produce a diagonal.
+        if (Math.abs(start[axis]-end[axis])<1e-9) { end[axis]=b[axis]+(end[axis]-b[axis])*.5; }
         if (paddedObstacles.some(rect=>segmentIntersectsRect(start,end,rect))) { continue; }
 
         result[i]=start;result[i+1]=end;
@@ -235,29 +224,6 @@ export class OrthogonalRouter {
       }
     }
     return result;
-  }
-  alignPorts(assignments) {
-    for (const pair of assignments) {
-      const {edge,fromSide,toSide}=pair;
-
-      if (fromSide===toSide || edge.from.collapsed || edge.to.collapsed) { continue; }
-
-      const low=Math.max(edge.from.y,edge.to.y)+12;
-      const high=Math.min(edge.from.y+(edge.from.container ? 44 : edge.from.h),edge.to.y+(edge.to.container ? 44 : edge.to.h))-12;
-
-      if (low>high) { continue; }
-
-      const y=Math.max(low,Math.min(high,(pair.start.y+pair.end.y)/2));
-      const start={x:pair.start.x,y},end={x:pair.end.x,y};
-      const occupied=assignments.some(other=>other!==pair && ['start','end'].some(kind=>{
-        const node=kind==='start' ? other.edge.from : other.edge.to;
-        return ((node===edge.from && other[kind].x===start.x) || (node===edge.to && other[kind].x===end.x)) && Math.abs(other[kind].y-y)<8;
-      }));
-
-      if (occupied || this.obstacles.some(rect=>segmentIntersectsRect(start,end,rect))) { continue; }
-
-      pair.start=start;pair.end=end;
-    }
   }
   simplePath(a,b) {
     const middle=(a.x+b.x)/2;
@@ -273,12 +239,16 @@ export class OrthogonalRouter {
     }));
   }
   portStub(point,side,lane) {
-    const right = side === 'right';
-    const distances = this.obstacles.filter(r => point.y > r.y && point.y < r.y+r.h).map(r => right ? r.x-point.x : point.x-r.x-r.w).filter(d => d > 0);
-    const clearance = distances.reduce((min,d) => Math.min(min,d-2),Infinity);
-    const offset = Math.min(routePadding+lane*3,clearance/2);
-    return {x:point.x+(right ? offset : -offset),y:point.y};
+    const vertical=this.ports.vertical(side),axis=vertical ? 'y' : 'x',cross=vertical ? 'x' : 'y';
+    const size=vertical ? 'h' : 'w',crossSize=vertical ? 'w' : 'h';
+    const positive=side==='right' || side==='bottom';
+    const distances=this.obstacles.filter(rect=>point[cross]>rect[cross] && point[cross]<rect[cross]+rect[crossSize])
+      .map(rect=>positive ? rect[axis]-point[axis] : point[axis]-rect[axis]-rect[size]).filter(distance=>distance>0);
+    const clearance=distances.reduce((min,distance)=>Math.min(min,distance-2),Infinity);
+    const offset=Math.min(routePadding+lane*3,clearance/2);
+    return {...point,[axis]:point[axis]+(positive ? offset : -offset)};
   }
+
   routeEdge({edge,start,end,a,b}) {
     const points = this.simplePath(a,b) ?? this.findPath(a,b,false) ?? this.findPath(a,b,true);
 
@@ -306,9 +276,11 @@ export class OrthogonalRouter {
       if (!edge.label) { continue; }
 
       const width = Math.min(40,edge.label.length)*12+10;
-      const segments = edge.points.slice(1).map((b,i) => ({a:edge.points[i],b})).filter(s => s.a.y === s.b.y && Math.abs(s.a.x-s.b.x) >= width+8);
-      segments.sort((a,b) => Math.abs(b.b.x-b.a.x)-Math.abs(a.b.x-a.a.x));
-      const candidates = segments.flatMap(({a,b}) => [-10,22].map(offset => ({x:(a.x+b.x)/2,y:a.y+offset})));
+      const segments=edge.points.slice(1).map((b,i)=>({a:edge.points[i],b})).filter(({a,b})=>
+        a.y===b.y ? Math.abs(a.x-b.x)>=width+8 : a.x===b.x && Math.abs(a.y-b.y)>=36);
+      segments.sort((first,second)=>Math.hypot(second.b.x-second.a.x,second.b.y-second.a.y)-Math.hypot(first.b.x-first.a.x,first.b.y-first.a.y));
+      const candidates=segments.flatMap(({a,b})=>a.y===b.y ? [-10,22].map(offset=>({x:(a.x+b.x)/2,y:a.y+offset})) :
+        [-1,1].map(side=>({x:a.x+side*(width/2+12),y:(a.y+b.y)/2+6})));
       for (const p of candidates) {
         const box = {x:p.x-width/2,y:p.y-20,w:width,h:28};
 

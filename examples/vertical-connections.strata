@@ -1,0 +1,29 @@
+# Expanded container headers connect vertically to their children automatically.
+diagram "Vertical connections"
+
+type service { large-icon: false }
+
+group dispatch "Job dispatch" {
+  service worker "Background worker"
+}
+
+group monitoring "Health monitoring" {
+  service probe "Health probe"
+}
+
+group gateway "Request gateway" {
+  service handler "Request handler"
+}
+
+dispatch -> worker "Dispatch job"
+probe -> monitoring "Report health"
+gateway -> handler "Request"
+handler -> gateway "Response"
+
+view overview "Vertical connection examples" {
+  include: [dispatch, monitoring, gateway]
+}
+
+view roundtrip "Request and response" {
+  include: [gateway]
+}

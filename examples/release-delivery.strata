@@ -188,3 +188,30 @@ view system "System overview" {
   include: [participants, delivery, runtime, control, traffic]
   detail: 0.65
 }
+
+# Container-to-service dispatch and status links demonstrate vertical ports.
+view vertical "Rollout with vertical dispatch" {
+  description: "Approval is specific to a plan version. Compatible schema expansion precedes deployment; measured health gates control traffic promotion."
+  relations: local
+  reviewer -> controller "Approve immutable plan"
+  controller -> state "Lease and durable progress"
+  controller -> migration "Compatible expansion"
+  migration -> application_db "Apply resumable migration"
+  migration -> controller "Expansion complete"
+  controller -> candidate "Deploy digest"
+  controller -> router "5 percent canary"
+  traffic -> router "Live requests"
+  router -> stable "Stable baseline"
+  router -> candidate "Candidate sample"
+  stable -> telemetry "Baseline health"
+  candidate -> telemetry "Candidate health"
+  telemetry -> canary "Compare tagged observations"
+  canary -> promote "Enough healthy samples"
+  promote -> router "25, 50, then 100 percent"
+  promote -> notifications "Release complete"
+  orchestration -> controller "Resume release"
+  orchestration -> canary "Evaluate rollout"
+  canary -> orchestration "Health verdict"
+  promote -> canary "Recheck health at each step"
+  canary -> controller "Report rollout health"
+}
