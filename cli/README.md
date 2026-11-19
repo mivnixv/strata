@@ -18,7 +18,7 @@ exposes the `strata` command.
 the package version without loading a diagram. Run a GitHub release artifact:
 
 ```sh
-npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.2.3/strata-diagrams-1.2.3.tgz strata generate architecture.strata -o architecture.html
+npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.0.0/strata-diagrams-1.0.0.tgz strata generate architecture.strata -o architecture.html
 ```
 
 Use an available release version in both the tag and filename. See

@@ -24,7 +24,7 @@ In GitHub **Releases → Draft a new release**, select the pushed tag, generate
 release notes, and publish. Alternatively, for a stable version:
 
 ```sh
-gh release create v1.2.3 --verify-tag --generate-notes
+gh release create v1.0.0 --verify-tag --generate-notes
 ```
 
 For a prerelease, check **Set as a pre-release** in GitHub, or pass `--prerelease`
@@ -48,10 +48,10 @@ no additional hosting service is needed.
 Run the exact version directly from its GitHub release artifact:
 
 ```sh
-npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.2.3/strata-diagrams-1.2.3.tgz strata generate architecture.strata -o architecture.html
+npx --yes --package https://github.com/mivnixv/strata/releases/download/v1.0.0/strata-diagrams-1.0.0.tgz strata generate architecture.strata -o architecture.html
 ```
 
-Replace `1.2.3` in both the tag and filename with the desired released version,
+Replace `1.0.0` in both the tag and filename with the desired released version,
 including any prerelease suffix. `npx` installs the tarball into its local cache
 and runs the bundled CLI. `build` remains an alias for `generate`; `--version`
 reports the archive's package version.
@@ -67,7 +67,7 @@ See [npm version](https://docs.npmjs.com/cli/v11/commands/npm-version/) and
 ```sh
 npm run release:pack
 # Optionally enforce the intended tag:
-npm run release:pack -- v1.1.0
+npm run release:pack -- v1.0.0
 ```
 
 This builds and smoke-tests `dist/releases/` without committing, tagging,
